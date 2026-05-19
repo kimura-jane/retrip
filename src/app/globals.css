@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 背景・テキスト */
+    --background: 80 33% 98%;          /* #FAFBF7 ほんのり緑がかったオフホワイト */
+    --foreground: 90 25% 8%;           /* #1A2010 ほぼ黒、わずかに緑寄り */
+
+    /* カード */
+    --card: 0 0% 100%;                 /* #FFFFFF 純白 */
+    --card-foreground: 90 25% 8%;
+
+    /* ポップオーバー */
+    --popover: 0 0% 100%;
+    --popover-foreground: 90 25% 8%;
+
+    /* プライマリ（ライムグリーン） */
+    --primary: 79 64% 56%;             /* #A8D547 メインカラー */
+    --primary-foreground: 0 0% 100%;   /* 白文字 */
+
+    /* セカンダリ（淡いグリーン） */
+    --secondary: 80 60% 95%;           /* #F1F8E1 */
+    --secondary-foreground: 90 25% 15%;
+
+    /* ミュート（控えめなグレーグリーン） */
+    --muted: 80 20% 95%;
+    --muted-foreground: 90 10% 40%;    /* #6B7560 */
+
+    /* アクセント */
+    --accent: 79 64% 92%;
+    --accent-foreground: 90 25% 15%;
+
+    /* 警告系 */
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* ボーダー・入力 */
+    --border: 80 15% 88%;
+    --input: 80 15% 88%;
+    --ring: 79 64% 56%;                /* フォーカスリングはブランドカラー */
+
+    /* 角丸 */
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* 見出しは明朝で品よく */
+  h1, h2, h3 {
+    @apply font-serif tracking-tight;
+  }
+
+  /* セレクション色をブランドカラーに */
+  ::selection {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+}
+
+@layer utilities {
+  /* セクションの余白統一 */
+  .section-padding {
+    @apply py-20 md:py-28;
+  }
+
+  /* 詩的な見出しスタイル（LP用） */
+  .heading-poetic {
+    @apply font-serif text-3xl md:text-5xl leading-relaxed tracking-wider;
+  }
+
+  /* 縦書きっぽい間延びした上品な日本語 */
+  .text-airy {
+    @apply leading-loose tracking-wide;
+  }
+
+  /* グラデーション背景（ヒーロー用フォールバック） */
+  .bg-brand-gradient {
+    background: linear-gradient(135deg, #F5FAEB 0%, #FFFFFF 50%, #E8F3D1 100%);
+  }
+}

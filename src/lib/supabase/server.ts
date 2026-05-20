@@ -1,4 +1,4 @@
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 import type { Database } from "@/types/database";
@@ -7,18 +7,6 @@ import type { Database } from "@/types/database";
  * サーバー（Server Component, Server Action, Route Handler）から使う Supabase クライアント。
  *
  * Next.js 15 から `cookies()` は async になったので、この関数も async。
- *
- * 使用例：
- * ```tsx
- * // Server Component
- * import { createClient } from "@/lib/supabase/server";
- *
- * export default async function Page() {
- *   const supabase = await createClient();
- *   const { data: { user } } = await supabase.auth.getUser();
- *   return <div>{user?.email}</div>;
- * }
- * ```
  */
 export async function createClient() {
   const cookieStore = await cookies();
@@ -31,7 +19,9 @@ export async function createClient() {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(
+          cookiesToSet: { name: string; value: string; options: CookieOptions }[]
+        ) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)

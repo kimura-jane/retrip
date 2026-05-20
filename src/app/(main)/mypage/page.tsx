@@ -19,7 +19,7 @@ export default async function MyPage() {
     .from("users")
     .select("display_name, bio, gender, birth_date, avatar_url, id_document_url, id_verified")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   const hasSubmittedId = !!profile?.id_document_url;
   const isVerified = profile?.id_verified === true;

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileEditForm } from "./profile-edit-form";
+import type { Gender } from "@/types/database";
 
 export default async function MyPageEditPage() {
   const supabase = await createClient();
@@ -14,7 +15,7 @@ export default async function MyPageEditPage() {
     .from("users")
     .select("display_name, bio, gender, birth_date")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   return (
     <div className="space-y-6 max-w-xl">
@@ -23,7 +24,7 @@ export default async function MyPageEditPage() {
         initialValues={{
           displayName: profile?.display_name ?? "",
           bio: profile?.bio ?? "",
-          gender: profile?.gender ?? "",
+          gender: (profile?.gender as Gender | undefined) ?? "",
           birthDate: profile?.birth_date ?? "",
         }}
       />

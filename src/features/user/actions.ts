@@ -43,8 +43,8 @@ export async function updateProfileAction(
     .update({
       display_name: parsed.data.displayName,
       bio: parsed.data.bio || null,
-      gender: parsed.data.gender || null,
-      birth_date: parsed.data.birthDate || null,
+      gender: parsed.data.gender,
+      birth_date: parsed.data.birthDate,
     })
     .eq("id", user.id);
 
@@ -97,11 +97,11 @@ export async function uploadIdDocumentAction(
     return { success: false, error: `アップロードに失敗しました: ${uploadError.message}` };
   }
 
+  // 書類提出 = 審査待ち。承認は管理者が id_verified=true にする
   const { error: updateError } = await supabase
     .from("users")
     .update({
       id_document_url: path,
-      id_verification_status: "pending",
     })
     .eq("id", user.id);
 

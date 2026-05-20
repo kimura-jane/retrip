@@ -17,16 +17,21 @@ export default async function MyPage() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("*")
+    .select("display_name, bio, gender, birth_date, avatar_url, id_document_url, id_verified")
     .eq("id", user.id)
     .single();
 
-  const verificationStatus = profile?.id_verification_status as
-    | "unverified"
-    | "pending"
-    | "approved"
-    | "rejected"
-    | null;
+  const hasSubmittedId = !!profile?.id_document_url;
+  const isVerified = profile?.id_verified === true;
+
+  let verificationLabel: { text: string; variant: "default" | "secondary" | "outline" };
+  if (isVerified) {
+    verificationLabel = { text: "承認済み", variant: "default" };
+  } else if (hasSubmittedId) {
+    verificationLabel = { text: "審査中", variant: "secondary" };
+  } else {
+    verificationLabel = { text: "未提出", variant: "outline" };
+  }
 
   return (
     <div className="space-y-6">
@@ -89,30 +94,24 @@ export default async function MyPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-lg">本人確認</CardTitle>
-          {verificationStatus === "approved" && (
-            <Badge variant="default">承認済み</Badge>
-          )}
-          {verificationStatus === "pending" && (
-            <Badge variant="secondary">審査中</Badge>
-          )}
-          {verificationStatus === "rejected" && (
-            <Badge variant="destructive">却下</Badge>
-          )}
-          {(!verificationStatus || verificationStatus === "unverified") && (
-            <Badge variant="outline">未提出</Badge>
-          )}
+          <Badge variant={verificationLabel.variant}>
+            {verificationLabel.text}
+          </Badge>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-neutral-600 leading-relaxed">
             ツアー参加には本人確認書類のご提出が必要です。
             運転免許証、パスポート、マイナンバーカード（表面のみ）などをご提出ください。
           </p>
-          {(verificationStatus === "unverified" ||
-            !verificationStatus ||
-            verificationStatus === "rejected") && (
+          {!isVerified && !hasSubmittedId && (
             <Link href="/mypage/id-upload">
               <Button size="sm">本人確認書類を提出する</Button>
             </Link>
+          )}
+          {!isVerified && hasSubmittedId && (
+            <p className="text-xs text-neutral-500">
+              書類を確認中です。承認まで1〜3営業日いただきます。
+            </p>
           )}
         </CardContent>
       </Card>

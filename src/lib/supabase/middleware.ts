@@ -3,19 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import type { Database } from "@/types/database";
 
-/**
- * Middleware から呼ばれて、Supabase のセッションを毎リクエストで更新する。
- *
- * Next.js の Middleware は Edge Runtime で動作し、すべてのリクエストの前段で実行される。
- * ここで Cookie に保存されたセッションをリフレッシュしておくことで、
- * Server Component / Server Action / Route Handler から取得した user が常に最新になる。
- *
- * また、認証必須ページへの未ログインアクセスをここでリダイレクトする。
- */
+type CookieToSet = {
+  name: string;
+  value: string;
+  options?: Parameters<NextRequest["cookies"]["set"]>[2];
+};
+
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
+  let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,13 +20,11 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: CookieToSet[]) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({
-            request,
-          });
+          supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -40,15 +33,13 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // 重要: createServerClient と getUser() の間に他のロジックを挟まない。
-  // セッションがランダムに切れる原因になる（Supabase 公式の警告）。
+  // 重要: createServerClient と getUser() の間に他のロジックを挟まない
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
 
-  // 認証が不要な公開ページ
   const publicPaths = [
     "/",
     "/login",
@@ -59,16 +50,14 @@ export async function updateSession(request: NextRequest) {
     "/privacy",
   ];
 
-  // ツアー一覧・詳細はプレビュー閲覧可（申込時にログイン要求）
   const publicPrefixes = ["/tours"];
 
   const isPublic =
     publicPaths.includes(pathname) ||
     publicPrefixes.some((prefix) => pathname.startsWith(prefix)) ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/stripe/webhook"); // Webhook は認証不要
+    pathname.startsWith("/api/stripe/webhook");
 
-  // 未ログイン & 非公開ページ → ログインへ
   if (!user && !isPublic) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
@@ -76,7 +65,6 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // 管理者ページの保護
   if (pathname.startsWith("/admin")) {
     const role = user?.user_metadata?.role;
     if (role !== "admin") {

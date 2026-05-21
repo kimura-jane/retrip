@@ -90,9 +90,6 @@ export function ChatRoomView({
   const [isUploading, setIsUploading] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
-  // キーボードのオフセット（visualViewport.height との差分）
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
-
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -100,24 +97,6 @@ export function ChatRoomView({
 
   const theme = getTheme(themeColor);
   const font = getFont(chatFont);
-
-  // visualViewportでキーボード高さを検知
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.visualViewport) return;
-    const vv = window.visualViewport;
-    const update = () => {
-      // window.innerHeight と vv.height の差がキーボードの高さ
-      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      setKeyboardOffset(offset);
-    };
-    update();
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
-    return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-    };
-  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -328,13 +307,9 @@ export function ChatRoomView({
     }
   };
 
-  // 入力欄の合計高さ概算（プレビュー類含む）
-  // メッセージリストはこの分を下にパディング
-  const bottomPadding = 60 + (replyTo ? 40 : 0) + (editingId ? 32 : 0) + (uploadPreview ? 144 : 0) + (error ? 24 : 0);
-
   return (
     <div
-      className={`relative flex flex-col h-[calc(100dvh-57px)] ${theme.chatBg} ${font.className}`}
+      className={`flex flex-col h-[calc(100dvh-57px)] ${theme.chatBg} ${font.className}`}
     >
       {/* ヘッダー */}
       <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3">
@@ -351,10 +326,7 @@ export function ChatRoomView({
       </div>
 
       {/* メッセージリスト */}
-      <div
-        className="flex-1 overflow-y-auto px-3 py-4 space-y-1"
-        style={{ paddingBottom: `${bottomPadding}px` }}
-      >
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
         {messages.length === 0 ? (
           <p className="text-center text-sm text-neutral-400 mt-8">
             まだメッセージはありません。最初の投稿をしてみよう
@@ -402,11 +374,8 @@ export function ChatRoomView({
         <div ref={bottomRef} />
       </div>
 
-      {/* 入力欄エリア（fixed配置でキーボードに追従） */}
-      <div
-        className="absolute left-0 right-0 bg-white border-t border-neutral-200 transition-[bottom] duration-150"
-        style={{ bottom: `${keyboardOffset}px` }}
-      >
+      {/* 入力欄エリア（flexアイテム） */}
+      <div className="flex-shrink-0 bg-white border-t border-neutral-200 z-10">
         {/* 返信プレビュー */}
         {replyTo && (
           <div className="bg-neutral-100 border-b border-neutral-200 px-3 py-2 flex items-start gap-2">

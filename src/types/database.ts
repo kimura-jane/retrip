@@ -42,6 +42,8 @@ export type ChatRoomType = "tour" | "lounge";
 
 export type ChatMemberRole = "member" | "admin";
 
+export type MediaType = "image" | "video" | "gif";
+
 // ===========================================
 // 集合場所（meeting_points jsonb の構造）
 // ===========================================
@@ -266,9 +268,12 @@ export interface Database {
           user_id: string;
           content: string;
           image_url: string | null;
-          created_at: string;
+          reply_to_message_id: string | null;
           edited_at: string | null;
           deleted_at: string | null;
+          media_url: string | null;
+          media_type: MediaType | null;
+          created_at: string;
         };
         Insert: {
           id?: string;
@@ -276,9 +281,12 @@ export interface Database {
           user_id: string;
           content: string;
           image_url?: string | null;
-          created_at?: string;
+          reply_to_message_id?: string | null;
           edited_at?: string | null;
           deleted_at?: string | null;
+          media_url?: string | null;
+          media_type?: MediaType | null;
+          created_at?: string;
         };
         Update: {
           id?: string;
@@ -286,9 +294,37 @@ export interface Database {
           user_id?: string;
           content?: string;
           image_url?: string | null;
-          created_at?: string;
+          reply_to_message_id?: string | null;
           edited_at?: string | null;
           deleted_at?: string | null;
+          media_url?: string | null;
+          media_type?: MediaType | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      message_reactions: {
+        Row: {
+          id: string;
+          message_id: string;
+          user_id: string;
+          emoji: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          message_id: string;
+          user_id: string;
+          emoji: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          message_id?: string;
+          user_id?: string;
+          emoji?: string;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -447,6 +483,7 @@ export type Booking = Tables<"bookings">;
 export type ChatRoom = Tables<"chat_rooms">;
 export type ChatMember = Tables<"chat_members">;
 export type Message = Tables<"messages">;
+export type MessageReaction = Tables<"message_reactions">;
 export type Album = Tables<"albums">;
 export type AlbumPhoto = Tables<"album_photos">;
 export type Payment = Tables<"payments">;

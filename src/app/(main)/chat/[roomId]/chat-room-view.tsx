@@ -90,8 +90,9 @@ export function ChatRoomView({
   const [isUploading, setIsUploading] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
-  // visualViewportの実際の高さを保持
-  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  // visualViewportの「高さ」と「ズレ（スクロールによる押し上げ分）」を保持する
+  const [viewportHeight, setViewportHeight] = useState<number | string>("100dvh");
+  const [viewportTop, setViewportTop] = useState<number>(0);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,30 +102,32 @@ export function ChatRoomView({
   const theme = getTheme(themeColor);
   const font = getFont(chatFont);
 
-  // visualViewportで高さを監視し、iOSの強制スクロールを打ち消す
+  // visualViewportで高さを監視し、iOSの強制スクロールを打ち消す（最終奥義）
   useEffect(() => {
     if (typeof window === "undefined" || !window.visualViewport) return;
     const vv = window.visualViewport;
 
-    const updateHeight = () => {
-      // iOS特有の画面ズレを防ぐためスクロールをトップに固定
-      window.scrollTo(0, 0);
+    const updateView = () => {
+      // 実際の表示領域の高さを取得
       setViewportHeight(vv.height);
+      // OSによって画面が上に押し上げられたズレ幅を取得
+      setViewportTop(vv.offsetTop);
     };
 
-    updateHeight();
-    vv.addEventListener("resize", updateHeight);
-    vv.addEventListener("scroll", updateHeight);
+    updateView();
+    // resize（キーボード開閉）と scroll（iOSによる強制スクロール）の両方を検知
+    vv.addEventListener("resize", updateView);
+    vv.addEventListener("scroll", updateView);
 
     return () => {
-      vv.removeEventListener("resize", updateHeight);
-      vv.removeEventListener("scroll", updateHeight);
+      vv.removeEventListener("resize", updateView);
+      vv.removeEventListener("scroll", updateView);
     };
   }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "auto" });
-  }, [messages.length, viewportHeight]); // 高さ変動時（キーボード表示時）も追従させる
+  }, [messages.length, viewportHeight]);
 
   useEffect(() => {
     const channel = supabase
@@ -332,11 +335,13 @@ export function ChatRoomView({
   };
 
   return (
-    // position: fixed を使い、画面左上に完全固定。
-    // 高さは visualViewport に同期させ、キーボード表示時に全体が綺麗に縮むようにする。
+    // iOSが上にスクロールしたズレ（viewportTop）分だけ、topを押し下げて画面内に留める
     <div
-      className={`fixed top-0 left-0 w-full flex flex-col overflow-hidden ${theme.chatBg} ${font.className}`}
-      style={{ height: viewportHeight ? `${viewportHeight}px` : "100dvh" }}
+      className={`fixed left-0 w-full flex flex-col overflow-hidden ${theme.chatBg} ${font.className}`}
+      style={{
+        top: `${viewportTop}px`,
+        height: typeof viewportHeight === "number" ? `${viewportHeight}px` : viewportHeight,
+      }}
     >
       {/* ヘッダー */}
       <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3 z-10">
@@ -402,8 +407,8 @@ export function ChatRoomView({
         <div ref={bottomRef} className="h-2" />
       </div>
 
-      {/* 入力欄エリア（flex-shrink-0で下部に配置） */}
-      {/* padding-bottomに pb-safe を当てて、キーボード非表示時のiPhoneホームバー対策をする */}
+      {/* 入力欄エリア */}
+      {/* iOSホームバー用の pb-safe 以外、無駄な余白(pb-5等)を削除 */}
       <div className="flex-shrink-0 bg-white border-t border-neutral-200 z-10 relative pb-safe">
         {/* 返信プレビュー */}
         {replyTo && (
@@ -476,7 +481,7 @@ export function ChatRoomView({
           </div>
         )}
 
-        {/* 入力フォーム本体 */}
+        {/* 入力フォーム本体（余白は最小限に） */}
         <div className="px-3 py-2">
           {error && <p className="text-xs text-red-600 mb-2 px-1">{error}</p>}
           <div className="flex items-end gap-2">
@@ -563,7 +568,6 @@ export function ChatRoomView({
   );
 }
 
-// ... (MessageBubbleとformatTime関数は全く同じなので省略せずにそのまま使用してください) ...
 type MessageBubbleProps = {
   refSetter: (el: HTMLDivElement | null) => void;
   isMine: boolean;

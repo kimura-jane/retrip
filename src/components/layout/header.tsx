@@ -29,6 +29,12 @@ export async function Header() {
                 ツアー
               </Link>
               <Link
+                href="/chat"
+                className="text-sm text-neutral-700 hover:text-brand-600 transition"
+              >
+                チャット
+              </Link>
+              <Link
                 href="/mypage"
                 className="text-sm text-neutral-700 hover:text-brand-600 transition"
               >

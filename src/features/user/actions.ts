@@ -4,10 +4,19 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { profileUpdateSchema } from "./schema";
+import type { Gender } from "@/types/database";
 
 export type ActionResult =
   | { success: true; message?: string }
   | { success: false; error: string; fieldErrors?: Record<string, string[]> };
+
+type UsersUpdatePayload = {
+  display_name?: string;
+  bio?: string | null;
+  gender?: Gender;
+  birth_date?: string;
+  id_document_url?: string | null;
+};
 
 export async function updateProfileAction(
   _prevState: ActionResult | null,
@@ -38,14 +47,16 @@ export async function updateProfileAction(
     };
   }
 
+  const payload: UsersUpdatePayload = {
+    display_name: parsed.data.displayName,
+    bio: parsed.data.bio || null,
+    gender: parsed.data.gender,
+    birth_date: parsed.data.birthDate,
+  };
+
   const { error } = await supabase
     .from("users")
-    .update({
-      display_name: parsed.data.displayName,
-      bio: parsed.data.bio || null,
-      gender: parsed.data.gender,
-      birth_date: parsed.data.birthDate,
-    })
+    .update(payload as never)
     .eq("id", user.id);
 
   if (error) {
@@ -97,12 +108,13 @@ export async function uploadIdDocumentAction(
     return { success: false, error: `アップロードに失敗しました: ${uploadError.message}` };
   }
 
-  // 書類提出 = 審査待ち。承認は管理者が id_verified=true にする
+  const idPayload: UsersUpdatePayload = {
+    id_document_url: path,
+  };
+
   const { error: updateError } = await supabase
     .from("users")
-    .update({
-      id_document_url: path,
-    })
+    .update(idPayload as never)
     .eq("id", user.id);
 
   if (updateError) {

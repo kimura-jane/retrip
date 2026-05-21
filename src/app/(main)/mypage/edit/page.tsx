@@ -3,6 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { ProfileEditForm } from "./profile-edit-form";
 import type { Gender } from "@/types/database";
 
+type ProfileRow = {
+  display_name: string | null;
+  bio: string | null;
+  gender: Gender | null;
+  birth_date: string | null;
+};
+
 export default async function MyPageEditPage() {
   const supabase = await createClient();
   const {
@@ -11,11 +18,13 @@ export default async function MyPageEditPage() {
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data } = await supabase
     .from("users")
-    .select("display_name, bio, gender, birth_date")
+    .select("display_name,bio,gender,birth_date")
     .eq("id", user.id)
     .maybeSingle();
+
+  const profile = data as ProfileRow | null;
 
   return (
     <div className="space-y-6 max-w-xl">
@@ -24,7 +33,7 @@ export default async function MyPageEditPage() {
         initialValues={{
           displayName: profile?.display_name ?? "",
           bio: profile?.bio ?? "",
-          gender: (profile?.gender as Gender | undefined) ?? "",
+          gender: profile?.gender ?? "",
           birthDate: profile?.birth_date ?? "",
         }}
       />

@@ -6,7 +6,7 @@ type RoomRow = {
   id: string;
   name: string;
   description: string | null;
-  room_type: string;
+  room_type: "tour" | "lounge";
   requires_verification: boolean;
 };
 
@@ -17,12 +17,27 @@ type MessageRow = {
   created_at: string;
   edited_at: string | null;
   deleted_at: string | null;
+  reply_to_message_id: string | null;
+  media_url: string | null;
+  media_type: "image" | "video" | "gif" | null;
+};
+
+type ReactionRow = {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
 };
 
 type SenderRow = {
   id: string;
   display_name: string;
   avatar_url: string | null;
+};
+
+type UserPrefsRow = {
+  chat_theme_color: string | null;
+  chat_font: string | null;
 };
 
 export default async function ChatRoomPage({
@@ -36,48 +51,87 @@ export default async function ChatRoomPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) {
+    redirect("/login");
+  }
 
-  // 部屋情報取得（RLSで権限なければ null）
-  const { data: roomData } = await supabase
+  // ルーム情報
+  const { data: room } = await supabase
     .from("chat_rooms")
     .select("id,name,description,room_type,requires_verification")
     .eq("id", roomId)
-    .maybeSingle();
+    .maybeSingle<RoomRow>();
+  if (!room) {
+    notFound();
+  }
 
-  const room = roomData as RoomRow | null;
-  if (!room) notFound();
-
-  // メッセージ取得（直近100件、古い順）
+  // メッセージ（最新100件）
   const { data: messagesData } = await supabase
     .from("messages")
-    .select("id,user_id,content,created_at,edited_at,deleted_at")
+    .select(
+      "id,user_id,content,created_at,edited_at,deleted_at,reply_to_message_id,media_url,media_type"
+    )
     .eq("room_id", roomId)
-    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: true })
     .limit(100);
 
-  const rawMessages = (messagesData as MessageRow[] | null) ?? [];
-  const messages = [...rawMessages].reverse();
+  const messages: MessageRow[] = (messagesData as MessageRow[] | null) ?? [];
 
-  // 送信者情報をまとめて取得
-  const userIds = Array.from(new Set(messages.map((m) => m.user_id)));
-  let senders: Record<string, { display_name: string; avatar_url: string | null }> = {};
+  // メッセージIDリスト
+  const messageIds = messages.map((m) => m.id);
 
+  // リアクション一括取得
+  let reactions: ReactionRow[] = [];
+  if (messageIds.length > 0) {
+    const { data: reactionsData } = await supabase
+      .from("message_reactions")
+      .select("id,message_id,user_id,emoji")
+      .in("message_id", messageIds);
+    reactions = (reactionsData as ReactionRow[] | null) ?? [];
+  }
+
+  // 送信者IDリスト（メッセージ + リアクション）
+  const userIds = Array.from(
+    new Set([
+      ...messages.map((m) => m.user_id),
+      ...reactions.map((r) => r.user_id),
+    ])
+  );
+
+  // 送信者情報を一括取得
+  const senders: Record<string, { display_name: string; avatar_url: string | null }> = {};
   if (userIds.length > 0) {
     const { data: sendersData } = await supabase
       .from("users")
       .select("id,display_name,avatar_url")
       .in("id", userIds);
-
-    const rows = (sendersData as SenderRow[] | null) ?? [];
-    senders = rows.reduce((acc, row) => {
-      acc[row.id] = {
-        display_name: row.display_name,
-        avatar_url: row.avatar_url,
+    for (const s of (sendersData as SenderRow[] | null) ?? []) {
+      senders[s.id] = {
+        display_name: s.display_name,
+        avatar_url: s.avatar_url,
       };
-      return acc;
-    }, {} as Record<string, { display_name: string; avatar_url: string | null }>);
+    }
   }
+
+  // 現在ユーザーのテーマ設定取得
+  const { data: prefsData } = await supabase
+    .from("users")
+    .select("chat_theme_color,chat_font")
+    .eq("id", user.id)
+    .maybeSingle<UserPrefsRow>();
+
+  const themeColor = (prefsData?.chat_theme_color ?? "green") as
+    | "green"
+    | "blue"
+    | "pink"
+    | "purple"
+    | "orange";
+  const chatFont = (prefsData?.chat_font ?? "sans") as
+    | "sans"
+    | "serif"
+    | "rounded"
+    | "mincho"
+    | "pop";
 
   return (
     <ChatRoomView
@@ -86,7 +140,10 @@ export default async function ChatRoomPage({
       roomDescription={room.description}
       currentUserId={user.id}
       initialMessages={messages}
+      initialReactions={reactions}
       senders={senders}
+      themeColor={themeColor}
+      chatFont={chatFont}
     />
   );
 }

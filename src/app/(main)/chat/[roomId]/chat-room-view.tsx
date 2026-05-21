@@ -44,12 +44,10 @@ export function ChatRoomView({
   const bottomRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
 
-  // 新メッセージが来たら一番下にスクロール
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  // Realtime 購読
   useEffect(() => {
     const channel = supabase
       .channel(`room:${roomId}`)
@@ -154,8 +152,7 @@ export function ChatRoomView({
             const isMine = msg.user_id === currentUserId;
             const sender = senders[msg.user_id];
             const prevMsg = messages[idx - 1];
-            const showSender =
-              !isMine && (!prevMsg || prevMsg.user_id !== msg.user_id);
+            const showSender = !prevMsg || prevMsg.user_id !== msg.user_id;
             const isDeleted = !!msg.deleted_at;
             const isEdited = !!msg.edited_at && !isDeleted;
 
@@ -177,7 +174,7 @@ export function ChatRoomView({
       </div>
 
       {/* 入力欄 */}
-      <div className="flex-shrink-0 bg-white border-t border-neutral-200 px-3 py-2 pb-[env(safe-area-inset-bottom)]">
+      <div className="flex-shrink-0 bg-white border-t border-neutral-200 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {error && <p className="text-xs text-red-600 mb-2 px-1">{error}</p>}
         <div className="flex items-end gap-2">
           <textarea
@@ -186,8 +183,8 @@ export function ChatRoomView({
             onKeyDown={handleKeyDown}
             placeholder="メッセージを入力"
             rows={1}
-            className="flex-1 resize-none rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 max-h-32"
-            style={{ minHeight: "40px" }}
+            className="flex-1 resize-none rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 max-h-32"
+            style={{ minHeight: "40px", fontSize: "16px" }}
           />
           <button
             type="button"
@@ -212,7 +209,7 @@ export function ChatRoomView({
 }
 
 // ===========================================
-// メッセージ吹き出しコンポーネント
+// メッセージ吹き出しコンポーネント（全員アイコン表示）
 // ===========================================
 
 type MessageBubbleProps = {
@@ -236,52 +233,76 @@ function MessageBubble({
 }: MessageBubbleProps) {
   const time = formatTime(createdAt);
 
-  if (isMine) {
-    return (
-      <div className="flex justify-end items-end gap-1.5 px-1 py-0.5">
-        <span className="text-[10px] text-neutral-400 mb-1 select-none">
-          {time}
-        </span>
-        <div
-          className={`max-w-[75%] px-3.5 py-2 rounded-2xl rounded-br-md text-sm break-words ${
-            isDeleted
-              ? "bg-neutral-200 text-neutral-500 italic"
-              : "bg-brand-500 text-white"
-          }`}
-        >
-          {isDeleted ? (
-            "メッセージの送信を取り消しました"
+  const avatar = (
+    <div className="flex-shrink-0 w-8">
+      {showSender && (
+        <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-xs text-neutral-600 overflow-hidden">
+          {sender?.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={sender.avatar_url}
+              alt={sender.display_name}
+              className="w-full h-full object-cover"
+            />
           ) : (
-            <>
-              {content}
-              {isEdited && (
-                <span className="text-[10px] opacity-70 ml-1">(編集済み)</span>
-              )}
-            </>
+            sender?.display_name?.[0] ?? "?"
           )}
         </div>
+      )}
+    </div>
+  );
+
+  const bubble = (
+    <div
+      className={`px-3.5 py-2 rounded-2xl text-sm break-words ${
+        isMine
+          ? `${isDeleted ? "bg-neutral-200 text-neutral-500 italic" : "bg-brand-500 text-white"} rounded-br-md`
+          : `${isDeleted ? "bg-neutral-200 text-neutral-500 italic" : "bg-white text-neutral-800 border border-neutral-200"} rounded-bl-md`
+      }`}
+    >
+      {isDeleted ? (
+        "メッセージの送信を取り消しました"
+      ) : (
+        <>
+          {content}
+          {isEdited && (
+            <span
+              className={`text-[10px] ml-1 ${
+                isMine ? "opacity-70" : "text-neutral-400"
+              }`}
+            >
+              (編集済み)
+            </span>
+          )}
+        </>
+      )}
+    </div>
+  );
+
+  if (isMine) {
+    return (
+      <div className="flex justify-end items-end gap-2 px-1 py-0.5">
+        <div className="flex flex-col items-end max-w-[75%]">
+          {showSender && (
+            <span className="text-[11px] text-neutral-500 mb-0.5 mr-1">
+              {sender?.display_name ?? "自分"}
+            </span>
+          )}
+          <div className="flex items-end gap-1.5">
+            <span className="text-[10px] text-neutral-400 mb-1 select-none flex-shrink-0">
+              {time}
+            </span>
+            {bubble}
+          </div>
+        </div>
+        {avatar}
       </div>
     );
   }
 
   return (
     <div className="flex justify-start items-end gap-2 px-1 py-0.5">
-      <div className="flex-shrink-0 w-8">
-        {showSender && (
-          <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-xs text-neutral-600 overflow-hidden">
-            {sender?.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={sender.avatar_url}
-                alt={sender.display_name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              sender?.display_name?.[0] ?? "?"
-            )}
-          </div>
-        )}
-      </div>
+      {avatar}
       <div className="flex flex-col items-start max-w-[75%]">
         {showSender && (
           <span className="text-[11px] text-neutral-500 mb-0.5 ml-1">
@@ -289,26 +310,7 @@ function MessageBubble({
           </span>
         )}
         <div className="flex items-end gap-1.5">
-          <div
-            className={`px-3.5 py-2 rounded-2xl rounded-bl-md text-sm break-words ${
-              isDeleted
-                ? "bg-neutral-200 text-neutral-500 italic"
-                : "bg-white text-neutral-800 border border-neutral-200"
-            }`}
-          >
-            {isDeleted ? (
-              "メッセージの送信を取り消しました"
-            ) : (
-              <>
-                {content}
-                {isEdited && (
-                  <span className="text-[10px] text-neutral-400 ml-1">
-                    (編集済み)
-                  </span>
-                )}
-              </>
-            )}
-          </div>
+          {bubble}
           <span className="text-[10px] text-neutral-400 mb-1 select-none flex-shrink-0">
             {time}
           </span>
@@ -317,10 +319,6 @@ function MessageBubble({
     </div>
   );
 }
-
-// ===========================================
-// 時刻フォーマット
-// ===========================================
 
 function formatTime(iso: string): string {
   const date = new Date(iso);

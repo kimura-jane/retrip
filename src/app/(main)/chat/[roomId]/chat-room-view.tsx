@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  useEffect,
   useMemo,
   useRef,
   useState,
   useTransition,
+  useEffect,
   type ChangeEvent,
   type KeyboardEvent,
   type PointerEvent as ReactPointerEvent,
@@ -90,9 +90,6 @@ export function ChatRoomView({
   const [isUploading, setIsUploading] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
-  // visualViewportの実際の高さを保持する
-  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
-
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -100,27 +97,6 @@ export function ChatRoomView({
 
   const theme = getTheme(themeColor);
   const font = getFont(chatFont);
-
-  // visualViewportで実際の表示高さを検知し、親要素の高さをピタッと合わせる
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.visualViewport) return;
-    const vv = window.visualViewport;
-    
-    const update = () => {
-      setViewportHeight(vv.height);
-      // iOS特有の画面ズレを防ぐため、画面を一番上に戻す
-      window.scrollTo(0, 0);
-    };
-    
-    update();
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update); // iOSSafariのキーボードドラッグ対策
-    
-    return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-    };
-  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -332,16 +308,9 @@ export function ChatRoomView({
   };
 
   return (
-    <div
-      className={`relative flex flex-col w-full ${theme.chatBg} ${font.className}`}
-      style={{
-        // 画面の実際の高さに強制的に合わせる
-        height: viewportHeight ? `${viewportHeight}px` : "100dvh",
-        overflow: "hidden", // 外側の不要なスクロールを防止
-      }}
-    >
-      {/* ヘッダー */}
-      <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3 z-10">
+    <div className={`min-h-screen flex flex-col ${theme.chatBg} ${font.className}`}>
+      {/* ヘッダー：画面上部に固定 */}
+      <div className="sticky top-0 z-20 bg-white border-b border-neutral-200 px-4 py-3">
         <Link
           href="/chat"
           className="text-xs text-neutral-500 hover:text-neutral-800"
@@ -354,9 +323,8 @@ export function ChatRoomView({
         )}
       </div>
 
-      {/* メッセージリスト */}
-      {/* paddingBottom などの動的計算を撤去し、単なる内部スクロール領域にする */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+      {/* メッセージリスト：高さを縛らずに自然配置 */}
+      <div className="flex-1 px-3 py-4 space-y-1">
         {messages.length === 0 ? (
           <p className="text-center text-sm text-neutral-400 mt-8">
             まだメッセージはありません。最初の投稿をしてみよう
@@ -401,11 +369,11 @@ export function ChatRoomView({
             );
           })
         )}
-        <div ref={bottomRef} />
+        <div ref={bottomRef} className="h-4" />
       </div>
 
-      {/* 入力欄エリア（flex-shrink-0で下部に配置） */}
-      <div className="flex-shrink-0 bg-white border-t border-neutral-200 z-10 relative">
+      {/* 入力エリア：最下部に固定（キーボード表示時はiOS標準の動きで押し上げさせる） */}
+      <div className="sticky bottom-0 z-20 bg-white border-t border-neutral-200">
         {/* 返信プレビュー */}
         {replyTo && (
           <div className="bg-neutral-100 border-b border-neutral-200 px-3 py-2 flex items-start gap-2">
@@ -459,7 +427,6 @@ export function ChatRoomView({
                   controls={false}
                 />
               ) : (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={uploadPreview.url}
                   alt="preview"
@@ -478,8 +445,8 @@ export function ChatRoomView({
           </div>
         )}
 
-        {/* 入力 */}
-        <div className="px-3 py-2">
+        {/* 入力フォーム本体（下部に適度な余白を設定） */}
+        <div className="px-3 py-2 pb-5">
           {error && <p className="text-xs text-red-600 mb-2 px-1">{error}</p>}
           <div className="flex items-end gap-2">
             {!editingId && (
@@ -631,7 +598,6 @@ function MessageBubble({
       {showSender && (
         <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-xs text-neutral-600 overflow-hidden">
           {sender?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={sender.avatar_url}
               alt={sender.display_name}
@@ -691,7 +657,6 @@ function MessageBubble({
               preload="metadata"
             />
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={message.media_url}
               alt="送信画像"
@@ -761,31 +726,3 @@ function MessageBubble({
       </div>
     );
   }
-
-  return (
-    <div className="flex justify-start items-end gap-2 px-1 py-0.5">
-      {avatar}
-      <div className="flex flex-col items-start max-w-[75%]">
-        {showSender && (
-          <span className="text-[11px] text-neutral-500 mb-0.5 ml-1">
-            {sender?.display_name ?? "不明なユーザー"}
-          </span>
-        )}
-        <div className="flex items-end gap-1.5">
-          {bubbleContent}
-          <span className="text-[10px] text-neutral-400 mb-1 select-none flex-shrink-0">
-            {time}
-          </span>
-        </div>
-        {reactionChips}
-      </div>
-    </div>
-  );
-}
-
-function formatTime(iso: string): string {
-  const date = new Date(iso);
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
-}

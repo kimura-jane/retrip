@@ -44,6 +44,10 @@ export type ChatMemberRole = "member" | "admin";
 
 export type MediaType = "image" | "video" | "gif";
 
+export type ChatThemeColor = "green" | "blue" | "pink" | "purple" | "orange";
+
+export type ChatFont = "sans" | "serif" | "rounded" | "mincho" | "pop";
+
 // ===========================================
 // 集合場所（meeting_points jsonb の構造）
 // ===========================================
@@ -75,6 +79,8 @@ export interface Database {
           id_document_url: string | null;
           id_verified: boolean;
           id_verified_at: string | null;
+          chat_theme_color: ChatThemeColor;
+          chat_font: ChatFont;
           created_at: string;
         };
         Insert: {
@@ -87,6 +93,8 @@ export interface Database {
           id_document_url?: string | null;
           id_verified?: boolean;
           id_verified_at?: string | null;
+          chat_theme_color?: ChatThemeColor;
+          chat_font?: ChatFont;
           created_at?: string;
         };
         Update: {
@@ -99,6 +107,8 @@ export interface Database {
           id_document_url?: string | null;
           id_verified?: boolean;
           id_verified_at?: string | null;
+          chat_theme_color?: ChatThemeColor;
+          chat_font?: ChatFont;
           created_at?: string;
         };
         Relationships: [];

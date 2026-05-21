@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GENDER_LABELS } from "@/features/user/schema";
-import type { Gender } from "@/types/database";
+import { ChatThemeForm } from "./chat-theme-form";
+import type { Gender, ChatThemeColor, ChatFont } from "@/types/database";
 
 type ProfileRow = {
   display_name: string | null;
@@ -16,6 +17,8 @@ type ProfileRow = {
   avatar_url: string | null;
   id_document_url: string | null;
   id_verified: boolean | null;
+  chat_theme_color: ChatThemeColor | null;
+  chat_font: ChatFont | null;
 };
 
 export default async function MyPage() {
@@ -28,7 +31,9 @@ export default async function MyPage() {
 
   const { data } = await supabase
     .from("users")
-    .select("display_name,bio,gender,birth_date,avatar_url,id_document_url,id_verified")
+    .select(
+      "display_name,bio,gender,birth_date,avatar_url,id_document_url,id_verified,chat_theme_color,chat_font"
+    )
     .eq("id", user.id)
     .maybeSingle();
 
@@ -126,6 +131,18 @@ export default async function MyPage() {
               書類を確認中です。承認まで1〜3営業日いただきます。
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">チャットの見た目</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ChatThemeForm
+            initialColor={profile?.chat_theme_color ?? "green"}
+            initialFont={profile?.chat_font ?? "sans"}
+          />
         </CardContent>
       </Card>
     </div>

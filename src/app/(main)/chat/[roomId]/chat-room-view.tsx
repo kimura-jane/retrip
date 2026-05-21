@@ -99,6 +99,9 @@ export function ChatRoomView({
   // ハイライト中のメッセージID（引用タップ時）
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
+  // ビューポート高さ（iOSキーボード対応）
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -106,6 +109,22 @@ export function ChatRoomView({
 
   const theme = getTheme(themeColor);
   const font = getFont(chatFont);
+
+  // visualViewportでキーボード表示時の高さを取得
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const update = () => {
+      setViewportHeight(vv.height);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
 
   // 自動スクロール（新着メッセージ時のみ）
   useEffect(() => {
@@ -327,9 +346,15 @@ export function ChatRoomView({
     }
   };
 
+  // 動的な高さ計算（visualViewportが取れたらそれを優先）
+  const containerStyle = viewportHeight
+    ? { height: `${viewportHeight - 57}px` }
+    : undefined;
+
   return (
     <div
-      className={`flex flex-col h-[calc(100dvh-57px)] ${theme.chatBg} ${font.className}`}
+      className={`flex flex-col ${theme.chatBg} ${font.className}`}
+      style={containerStyle ?? { height: "calc(100dvh - 57px)" }}
     >
       {/* ヘッダー */}
       <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3">
@@ -467,7 +492,7 @@ export function ChatRoomView({
       )}
 
       {/* 入力欄 */}
-      <div className="flex-shrink-0 bg-white border-t border-neutral-200 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="flex-shrink-0 bg-white border-t border-neutral-200 px-3 py-2">
         {error && <p className="text-xs text-red-600 mb-2 px-1">{error}</p>}
         <div className="flex items-end gap-2">
           {/* メディア添付ボタン */}

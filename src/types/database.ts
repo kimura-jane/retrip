@@ -49,7 +49,7 @@ export type ChatMemberRole = "member" | "admin";
 export interface MeetingPoint {
   id: string;
   name: string;
-  time: string; // "HH:mm" 形式
+  time: string;
   lat?: number;
   lng?: number;
   note?: string;
@@ -66,7 +66,7 @@ export interface Database {
         Row: {
           id: string;
           display_name: string;
-          birth_date: string; // ISO date 'YYYY-MM-DD'
+          birth_date: string;
           gender: Gender;
           bio: string | null;
           avatar_url: string | null;
@@ -197,20 +197,7 @@ export interface Database {
           amount_paid?: number;
           booked_at?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: "bookings_tour_id_fkey";
-            columns: ["tour_id"];
-            referencedRelation: "tours";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "bookings_user_id_fkey";
-            columns: ["user_id"];
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          }
-        ];
+        Relationships: [];
       };
 
       chat_rooms: {
@@ -219,6 +206,9 @@ export interface Database {
           room_type: ChatRoomType;
           tour_id: string | null;
           name: string;
+          description: string | null;
+          requires_verification: boolean;
+          sort_order: number;
           created_at: string;
         };
         Insert: {
@@ -226,6 +216,9 @@ export interface Database {
           room_type: ChatRoomType;
           tour_id?: string | null;
           name: string;
+          description?: string | null;
+          requires_verification?: boolean;
+          sort_order?: number;
           created_at?: string;
         };
         Update: {
@@ -233,16 +226,12 @@ export interface Database {
           room_type?: ChatRoomType;
           tour_id?: string | null;
           name?: string;
+          description?: string | null;
+          requires_verification?: boolean;
+          sort_order?: number;
           created_at?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: "chat_rooms_tour_id_fkey";
-            columns: ["tour_id"];
-            referencedRelation: "tours";
-            referencedColumns: ["id"];
-          }
-        ];
+        Relationships: [];
       };
 
       chat_members: {
@@ -267,20 +256,7 @@ export interface Database {
           joined_at?: string;
           left_at?: string | null;
         };
-        Relationships: [
-          {
-            foreignKeyName: "chat_members_room_id_fkey";
-            columns: ["room_id"];
-            referencedRelation: "chat_rooms";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "chat_members_user_id_fkey";
-            columns: ["user_id"];
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          }
-        ];
+        Relationships: [];
       };
 
       messages: {
@@ -314,20 +290,7 @@ export interface Database {
           edited_at?: string | null;
           deleted_at?: string | null;
         };
-        Relationships: [
-          {
-            foreignKeyName: "messages_room_id_fkey";
-            columns: ["room_id"];
-            referencedRelation: "chat_rooms";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "messages_user_id_fkey";
-            columns: ["user_id"];
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          }
-        ];
+        Relationships: [];
       };
 
       albums: {
@@ -346,14 +309,7 @@ export interface Database {
           tour_id?: string;
           created_at?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: "albums_tour_id_fkey";
-            columns: ["tour_id"];
-            referencedRelation: "tours";
-            referencedColumns: ["id"];
-          }
-        ];
+        Relationships: [];
       };
 
       album_photos: {
@@ -384,20 +340,7 @@ export interface Database {
           created_at?: string;
           deleted_at?: string | null;
         };
-        Relationships: [
-          {
-            foreignKeyName: "album_photos_album_id_fkey";
-            columns: ["album_id"];
-            referencedRelation: "albums";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "album_photos_user_id_fkey";
-            columns: ["user_id"];
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          }
-        ];
+        Relationships: [];
       };
 
       payments: {
@@ -431,14 +374,7 @@ export interface Database {
           raw_payload?: Json;
           created_at?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: "payments_booking_id_fkey";
-            columns: ["booking_id"];
-            referencedRelation: "bookings";
-            referencedColumns: ["id"];
-          }
-        ];
+        Relationships: [];
       };
 
       admin_logs: {
@@ -469,14 +405,7 @@ export interface Database {
           note?: string | null;
           created_at?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: "admin_logs_admin_user_id_fkey";
-            columns: ["admin_user_id"];
-            referencedRelation: "users";
-            referencedColumns: ["id"];
-          }
-        ];
+        Relationships: [];
       };
     };
     Views: {
@@ -500,7 +429,7 @@ export interface Database {
 }
 
 // ===========================================
-// 便利な型エイリアス（アプリ全体で使う）
+// 便利な型エイリアス
 // ===========================================
 
 export type Tables<T extends keyof Database["public"]["Tables"]> =
@@ -512,7 +441,6 @@ export type TablesInsert<T extends keyof Database["public"]["Tables"]> =
 export type TablesUpdate<T extends keyof Database["public"]["Tables"]> =
   Database["public"]["Tables"][T]["Update"];
 
-// よく使うエイリアス
 export type User = Tables<"users">;
 export type Tour = Tables<"tours">;
 export type Booking = Tables<"bookings">;

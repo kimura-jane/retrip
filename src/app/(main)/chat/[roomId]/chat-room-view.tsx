@@ -1,45 +1,56 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { sendMessageAction } from "@/features/chat/actions";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-type MessageWithUser = {
+type MessageRow = {
   id: string;
+  user_id: string;
   content: string;
   created_at: string;
-  user_id: string;
-  users: {
-    display_name: string;
-    avatar_url: string | null;
-  } | null;
+  edited_at: string | null;
+  deleted_at: string | null;
+};
+
+type SenderInfo = {
+  display_name: string;
+  avatar_url: string | null;
 };
 
 type Props = {
   roomId: string;
+  roomName: string;
+  roomDescription: string | null;
   currentUserId: string;
-  initialMessages: MessageWithUser[];
+  initialMessages: MessageRow[];
+  senders: Record<string, SenderInfo>;
 };
 
-export function ChatRoomView({ roomId, currentUserId, initialMessages }: Props) {
-  const [messages, setMessages] = useState<MessageWithUser[]>(initialMessages);
-  const [content, setContent] = useState("");
+export function ChatRoomView({
+  roomId,
+  roomName,
+  roomDescription,
+  currentUserId,
+  initialMessages,
+  senders: initialSenders,
+}: Props) {
+  const [messages, setMessages] = useState<MessageRow[]>(initialMessages);
+  const [senders, setSenders] = useState<Record<string, SenderInfo>>(initialSenders);
+  const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const supabase = createClient();
 
-  // 初回・新着メッセージ時に最下部へスクロール
+  // 新メッセージが来たら一番下にスクロール
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
   // Realtime 購読
   useEffect(() => {
-    const supabase = createClient();
-
     const channel = supabase
       .channel(`room:${roomId}`)
       .on(
@@ -51,36 +62,40 @@ export function ChatRoomView({ roomId, currentUserId, initialMessages }: Props) 
           filter: `room_id=eq.${roomId}`,
         },
         async (payload) => {
-          const newMsg = payload.new as {
-            id: string;
-            content: string;
-            created_at: string;
-            user_id: string;
-          };
-
-          // 投稿ユーザー情報を取得
-          const { data } = await supabase
-            .from("users")
-            .select("display_name,avatar_url")
-            .eq("id", newMsg.user_id)
-            .maybeSingle();
-
-          const userInfo = data as { display_name: string; avatar_url: string | null } | null;
-
+          const newMessage = payload.new as MessageRow;
           setMessages((prev) => {
-            // 重複チェック
-            if (prev.some((m) => m.id === newMsg.id)) return prev;
-            return [
-              ...prev,
-              {
-                id: newMsg.id,
-                content: newMsg.content,
-                created_at: newMsg.created_at,
-                user_id: newMsg.user_id,
-                users: userInfo,
-              },
-            ];
+            if (prev.some((m) => m.id === newMessage.id)) return prev;
+            return [...prev, newMessage];
           });
+          // 送信者情報が未取得なら取得
+          if (!senders[newMessage.user_id]) {
+            const { data } = await supabase
+              .from("users")
+              .select("display_name,avatar_url")
+              .eq("id", newMessage.user_id)
+              .maybeSingle();
+            if (data) {
+              setSenders((prev) => ({
+                ...prev,
+                [newMessage.user_id]: data as SenderInfo,
+              }));
+            }
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `room_id=eq.${roomId}`,
+        },
+        (payload) => {
+          const updated = payload.new as MessageRow;
+          setMessages((prev) =>
+            prev.map((m) => (m.id === updated.id ? updated : m))
+          );
         }
       )
       .subscribe();
@@ -88,125 +103,245 @@ export function ChatRoomView({ roomId, currentUserId, initialMessages }: Props) 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId]);
+  }, [roomId, senders, supabase]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!content.trim()) return;
-
-    const text = content;
-    setContent("");
+  const handleSend = () => {
+    const content = input.trim();
+    if (!content || isPending) return;
     setError(null);
+    const optimisticInput = input;
+    setInput("");
 
     startTransition(async () => {
-      const result = await sendMessageAction(roomId, text);
+      const result = await sendMessageAction(roomId, content);
       if (!result.success) {
         setError(result.error);
-        setContent(text); // 失敗時は入力を戻す
+        setInput(optimisticInput);
       }
     });
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-280px)] min-h-[400px] border border-neutral-200 rounded-lg bg-white">
-      {/* メッセージ一覧 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex flex-col h-[calc(100vh-65px)] bg-[#F5F6F0]">
+      {/* ヘッダー */}
+      <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3">
+        <Link
+          href="/chat"
+          className="text-xs text-neutral-500 hover:text-neutral-800"
+        >
+          ← チャット一覧
+        </Link>
+        <h1 className="font-serif text-xl text-neutral-800 mt-1">{roomName}</h1>
+        {roomDescription && (
+          <p className="text-xs text-neutral-500 mt-0.5">{roomDescription}</p>
+        )}
+      </div>
+
+      {/* メッセージリスト */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
         {messages.length === 0 ? (
-          <p className="text-center text-sm text-neutral-400 py-8">
+          <p className="text-center text-sm text-neutral-400 mt-8">
             まだメッセージはありません。最初の投稿をしてみよう
           </p>
         ) : (
-          messages.map((msg) => {
+          messages.map((msg, idx) => {
             const isMine = msg.user_id === currentUserId;
+            const sender = senders[msg.user_id];
+            const prevMsg = messages[idx - 1];
+            const showSender =
+              !isMine &&
+              (!prevMsg || prevMsg.user_id !== msg.user_id);
+            const isDeleted = !!msg.deleted_at;
+            const isEdited = !!msg.edited_at && !isDeleted;
+
             return (
-              <div
+              <MessageBubble
                 key={msg.id}
-                className={`flex gap-3 ${isMine ? "flex-row-reverse" : ""}`}
-              >
-                <Avatar className="h-8 w-8 shrink-0">
-                  {msg.users?.avatar_url ? (
-                    <AvatarImage src={msg.users.avatar_url} alt="" />
-                  ) : null}
-                  <AvatarFallback className="text-xs">
-                    {msg.users?.display_name?.[0] ?? "?"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className={`flex flex-col ${isMine ? "items-end" : ""} max-w-[75%]`}>
-                  <span className="text-xs text-neutral-500 mb-1">
-                    {msg.users?.display_name ?? "不明"}
-                  </span>
-                  <div
-                    className={`rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap break-words ${
-                      isMine
-                        ? "bg-brand-500 text-white"
-                        : "bg-neutral-100 text-neutral-800"
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
-                  <span className="text-[10px] text-neutral-400 mt-1">
-                    {formatTime(msg.created_at)}
-                  </span>
-                </div>
-              </div>
+                isMine={isMine}
+                sender={sender}
+                showSender={showSender}
+                content={msg.content}
+                createdAt={msg.created_at}
+                isDeleted={isDeleted}
+                isEdited={isEdited}
+              />
             );
           })
         )}
         <div ref={bottomRef} />
       </div>
 
-      {/* 投稿フォーム */}
-      <form
-        onSubmit={handleSubmit}
-        className="border-t border-neutral-200 p-3 space-y-2"
-      >
-        {error && <p className="text-xs text-red-600">{error}</p>}
-        <div className="flex gap-2 items-end">
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="メッセージを入力..."
-            rows={2}
-            maxLength={2000}
-            disabled={isPending}
-            className="resize-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                handleSubmit(e);
-              }
-            }}
+      {/* 入力欄 */}
+      <div className="flex-shrink-0 bg-white border-t border-neutral-200 px-3 py-2">
+        {error && (
+          <p className="text-xs text-red-600 mb-2 px-1">{error}</p>
+        )}
+        <div className="flex items-end gap-2">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="メッセージを入力"
+            rows={1}
+            className="flex-1 resize-none rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 max-h-32"
+            style={{ minHeight: "40px" }}
           />
-          <Button
-            type="submit"
-            disabled={isPending || !content.trim()}
-            size="sm"
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!input.trim() || isPending}
+            className="flex-shrink-0 h-10 w-10 rounded-full bg-brand-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-600 transition flex items-center justify-center"
+            aria-label="送信"
           >
-            {isPending ? "..." : "送信"}
-          </Button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-5 h-5"
+            >
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+            </svg>
+          </button>
         </div>
-        <p className="text-[10px] text-neutral-400">
-          Ctrl/⌘ + Enter で送信
-        </p>
-      </form>
+      </div>
     </div>
   );
 }
 
+// ===========================================
+// メッセージ吹き出しコンポーネント
+// ===========================================
+
+type MessageBubbleProps = {
+  isMine: boolean;
+  sender: SenderInfo | undefined;
+  showSender: boolean;
+  content: string;
+  createdAt: string;
+  isDeleted: boolean;
+  isEdited: boolean;
+};
+
+function MessageBubble({
+  isMine,
+  sender,
+  showSender,
+  content,
+  createdAt,
+  isDeleted,
+  isEdited,
+}: MessageBubbleProps) {
+  const time = formatTime(createdAt);
+
+  if (isMine) {
+    return (
+      <div className="flex justify-end items-end gap-1.5 px-1 py-0.5">
+        <span className="text-[10px] text-neutral-400 mb-1 select-none">
+          {time}
+        </span>
+        <div
+          className={`max-w-[75%] px-3.5 py-2 rounded-2xl rounded-br-md text-sm break-words ${
+            isDeleted
+              ? "bg-neutral-200 text-neutral-500 italic"
+              : "bg-brand-500 text-white"
+          }`}
+        >
+          {isDeleted ? (
+            "メッセージの送信を取り消しました"
+          ) : (
+            <>
+              {content}
+              {isEdited && (
+                <span className="text-[10px] opacity-70 ml-1">(編集済み)</span>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex justify-start items-end gap-2 px-1 py-0.5">
+      {/* アバター（連続発言では非表示でスペースだけ確保） */}
+      <div className="flex-shrink-0 w-8">
+        {showSender && (
+          <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-xs text-neutral-600 overflow-hidden">
+            {sender?.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={sender.avatar_url}
+                alt={sender.display_name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              sender?.display_name?.[0] ?? "?"
+            )}
+          </div>
+        )}
+      </div>
+      <div className="flex flex-col items-start max-w-[75%]">
+        {showSender && (
+          <span className="text-[11px] text-neutral-500 mb-0.5 ml-1">
+            {sender?.display_name ?? "不明なユーザー"}
+          </span>
+        )}
+        <div className="flex items-end gap-1.5">
+          <div
+            className={`px-3.5 py-2 rounded-2xl rounded-bl-md text-sm break-words ${
+              isDeleted
+                ? "bg-neutral-200 text-neutral-500 italic"
+                : "bg-white text-neutral-800 border border-neutral-200"
+            }`}
+          >
+            {isDeleted ? (
+              "メッセージの送信を取り消しました"
+            ) : (
+              <>
+                {content}
+                {isEdited && (
+                  <span className="text-[10px] text-neutral-400 ml-1">
+                    (編集済み)
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+          <span className="text-[10px] text-neutral-400 mb-1 select-none flex-shrink-0">
+            {time}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===========================================
+// 時刻フォーマット
+// ===========================================
+
 function formatTime(iso: string): string {
-  const d = new Date(iso);
+  const date = new Date(iso);
   const now = new Date();
-  const sameDay =
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
+  const isSameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
 
-  const hh = d.getHours().toString().padStart(2, "0");
-  const mm = d.getMinutes().toString().padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
 
-  if (sameDay) return `${hh}:${mm}`;
-
-  const mo = (d.getMonth() + 1).toString().padStart(2, "0");
-  const day = d.getDate().toString().padStart(2, "0");
-  return `${mo}/${day} ${hh}:${mm}`;
+  if (isSameDay) {
+    return `${hh}:${mm}`;
+  }
+  const mo = date.getMonth() + 1;
+  const d = date.getDate();
+  return `${mo}/${d} ${hh}:${mm}`;
 }

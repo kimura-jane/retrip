@@ -1,9 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type ChangeEvent,
+  type KeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { sendMessageAction } from "@/features/chat/actions";
+import {
+  sendMessageAction,
+  editMessageAction,
+  deleteMessageAction,
+  addReactionAction,
+  removeReactionAction,
+  uploadChatMediaAction,
+} from "@/features/chat/actions";
+import { ReactionPicker } from "@/features/chat/reaction-picker";
+import { MessageMenu, type MessageMenuAction } from "@/features/chat/message-menu";
+import { getTheme, getFont } from "@/features/chat/themes";
+import type { ChatThemeColor, ChatFont } from "@/types/database";
 
 type MessageRow = {
   id: string;
@@ -12,6 +32,16 @@ type MessageRow = {
   created_at: string;
   edited_at: string | null;
   deleted_at: string | null;
+  reply_to_message_id: string | null;
+  media_url: string | null;
+  media_type: "image" | "video" | "gif" | null;
+};
+
+type ReactionRow = {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
 };
 
 type SenderInfo = {
@@ -25,7 +55,10 @@ type Props = {
   roomDescription: string | null;
   currentUserId: string;
   initialMessages: MessageRow[];
+  initialReactions: ReactionRow[];
   senders: Record<string, SenderInfo>;
+  themeColor: ChatThemeColor;
+  chatFont: ChatFont;
 };
 
 export function ChatRoomView({
@@ -34,20 +67,52 @@ export function ChatRoomView({
   roomDescription,
   currentUserId,
   initialMessages,
+  initialReactions,
   senders: initialSenders,
+  themeColor,
+  chatFont,
 }: Props) {
   const [messages, setMessages] = useState<MessageRow[]>(initialMessages);
+  const [reactions, setReactions] = useState<ReactionRow[]>(initialReactions);
   const [senders, setSenders] = useState<Record<string, SenderInfo>>(initialSenders);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const supabase = createClient();
 
+  // 編集モード
+  const [editingId, setEditingId] = useState<string | null>(null);
+  // 返信モード
+  const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
+
+  // 長押しメニュー
+  const [menuFor, setMenuFor] = useState<MessageRow | null>(null);
+  // リアクションピッカー
+  const [pickerFor, setPickerFor] = useState<MessageRow | null>(null);
+
+  // メディアアップロード
+  const [uploadPreview, setUploadPreview] = useState<{
+    url: string;
+    mediaType: "image" | "video" | "gif";
+  } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // ハイライト中のメッセージID（引用タップ時）
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const supabase = useMemo(() => createClient(), []);
+
+  const theme = getTheme(themeColor);
+  const font = getFont(chatFont);
+
+  // 自動スクロール（新着メッセージ時のみ）
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
+  // Realtime購読
   useEffect(() => {
     const channel = supabase
       .channel(`room:${roomId}`)
@@ -95,6 +160,25 @@ export function ChatRoomView({
           );
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "message_reactions" },
+        (payload) => {
+          const newReaction = payload.new as ReactionRow;
+          setReactions((prev) => {
+            if (prev.some((r) => r.id === newReaction.id)) return prev;
+            return [...prev, newReaction];
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "message_reactions" },
+        (payload) => {
+          const oldReaction = payload.old as { id: string };
+          setReactions((prev) => prev.filter((r) => r.id !== oldReaction.id));
+        }
+      )
       .subscribe();
 
     return () => {
@@ -102,31 +186,153 @@ export function ChatRoomView({
     };
   }, [roomId, senders, supabase]);
 
+  // リアクションをメッセージごとにグループ化
+  const reactionsByMessage = useMemo(() => {
+    const map: Record<string, Record<string, { count: number; mine: boolean }>> = {};
+    for (const r of reactions) {
+      if (!map[r.message_id]) map[r.message_id] = {};
+      if (!map[r.message_id][r.emoji]) {
+        map[r.message_id][r.emoji] = { count: 0, mine: false };
+      }
+      map[r.message_id][r.emoji].count++;
+      if (r.user_id === currentUserId) {
+        map[r.message_id][r.emoji].mine = true;
+      }
+    }
+    return map;
+  }, [reactions, currentUserId]);
+
+  // 送信処理
   const handleSend = () => {
     const content = input.trim();
-    if (!content || isPending) return;
+    const hasMedia = !!uploadPreview;
+    if ((!content && !hasMedia) || isPending) return;
     setError(null);
+
+    // 編集モード
+    if (editingId) {
+      const targetId = editingId;
+      const newContent = content;
+      setInput("");
+      setEditingId(null);
+      startTransition(async () => {
+        const result = await editMessageAction(targetId, newContent, roomId);
+        if (!result.success) setError(result.error);
+      });
+      return;
+    }
+
+    // 通常送信
     const optimisticInput = input;
+    const optimisticReply = replyTo?.id ?? null;
+    const optimisticMedia = uploadPreview;
     setInput("");
+    setReplyTo(null);
+    setUploadPreview(null);
 
     startTransition(async () => {
-      const result = await sendMessageAction(roomId, content);
+      const result = await sendMessageAction(roomId, content, {
+        replyToMessageId: optimisticReply,
+        mediaUrl: optimisticMedia?.url ?? null,
+        mediaType: optimisticMedia?.mediaType ?? null,
+      });
       if (!result.success) {
         setError(result.error);
         setInput(optimisticInput);
+        if (optimisticMedia) setUploadPreview(optimisticMedia);
       }
     });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       handleSend();
     }
   };
 
+  // メニューアクション
+  const handleMenuAction = (msg: MessageRow, action: MessageMenuAction) => {
+    if (action === "react") {
+      setPickerFor(msg);
+    } else if (action === "reply") {
+      setReplyTo(msg);
+      setEditingId(null);
+    } else if (action === "copy") {
+      navigator.clipboard?.writeText(msg.content).catch(() => {});
+    } else if (action === "edit") {
+      setEditingId(msg.id);
+      setInput(msg.content);
+      setReplyTo(null);
+    } else if (action === "delete") {
+      if (confirm("このメッセージの送信を取り消しますか？")) {
+        startTransition(async () => {
+          const result = await deleteMessageAction(msg.id, roomId);
+          if (!result.success) setError(result.error);
+        });
+      }
+    }
+  };
+
+  // リアクション選択
+  const handleEmojiSelect = (emoji: string) => {
+    if (!pickerFor) return;
+    const targetId = pickerFor.id;
+    const existing = reactionsByMessage[targetId]?.[emoji];
+    startTransition(async () => {
+      if (existing?.mine) {
+        await removeReactionAction(targetId, emoji, roomId);
+      } else {
+        await addReactionAction(targetId, emoji, roomId);
+      }
+    });
+  };
+
+  // 既存リアクションのトグル（バブル下のチップタップ時）
+  const toggleReaction = (messageId: string, emoji: string) => {
+    const existing = reactionsByMessage[messageId]?.[emoji];
+    startTransition(async () => {
+      if (existing?.mine) {
+        await removeReactionAction(messageId, emoji, roomId);
+      } else {
+        await addReactionAction(messageId, emoji, roomId);
+      }
+    });
+  };
+
+  // ファイル選択 → アップロード
+  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = ""; // 同じファイル再選択許可
+    setIsUploading(true);
+    setError(null);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("roomId", roomId);
+    const result = await uploadChatMediaAction(formData);
+    setIsUploading(false);
+    if (result.success) {
+      setUploadPreview({ url: result.url, mediaType: result.mediaType });
+    } else {
+      setError(result.error);
+    }
+  };
+
+  // 引用元へジャンプ
+  const jumpToMessage = (messageId: string) => {
+    const el = messageRefs.current[messageId];
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightId(messageId);
+      setTimeout(() => setHighlightId(null), 1500);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100dvh-57px)] bg-[#F5F6F0]">
+    <div
+      className={`flex flex-col h-[calc(100dvh-57px)] ${theme.chatBg} ${font.className}`}
+    >
       {/* ヘッダー */}
       <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3">
         <Link
@@ -155,17 +361,34 @@ export function ChatRoomView({
             const showSender = !prevMsg || prevMsg.user_id !== msg.user_id;
             const isDeleted = !!msg.deleted_at;
             const isEdited = !!msg.edited_at && !isDeleted;
+            const msgReactions = reactionsByMessage[msg.id] ?? {};
+            const replyToMsg = msg.reply_to_message_id
+              ? messages.find((m) => m.id === msg.reply_to_message_id) ?? null
+              : null;
+            const replyToSender = replyToMsg
+              ? senders[replyToMsg.user_id]
+              : undefined;
 
             return (
               <MessageBubble
                 key={msg.id}
+                refSetter={(el) => {
+                  messageRefs.current[msg.id] = el;
+                }}
                 isMine={isMine}
                 sender={sender}
                 showSender={showSender}
-                content={msg.content}
-                createdAt={msg.created_at}
+                message={msg}
                 isDeleted={isDeleted}
                 isEdited={isEdited}
+                reactions={msgReactions}
+                replyToMsg={replyToMsg}
+                replyToSender={replyToSender}
+                highlighted={highlightId === msg.id}
+                themeMyBubble={`${theme.myBubbleBg} ${theme.myBubbleText}`}
+                onLongPress={() => setMenuFor(msg)}
+                onReactionClick={(emoji) => toggleReaction(msg.id, emoji)}
+                onReplyClick={() => replyToMsg && jumpToMessage(replyToMsg.id)}
               />
             );
           })
@@ -173,24 +396,131 @@ export function ChatRoomView({
         <div ref={bottomRef} />
       </div>
 
+      {/* 返信プレビュー */}
+      {replyTo && (
+        <div className="flex-shrink-0 bg-neutral-100 border-t border-neutral-200 px-3 py-2 flex items-start gap-2">
+          <div className={`w-1 self-stretch rounded-full ${theme.accentBorder}`} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] text-neutral-500">
+              {senders[replyTo.user_id]?.display_name ?? "ユーザー"} に返信
+            </p>
+            <p className="text-xs text-neutral-700 truncate">
+              {replyTo.deleted_at
+                ? "（削除されたメッセージ）"
+                : replyTo.content || (replyTo.media_type ? "[メディア]" : "")}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setReplyTo(null)}
+            className="text-neutral-400 hover:text-neutral-700 text-lg leading-none px-1"
+            aria-label="返信キャンセル"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* 編集プレビュー */}
+      {editingId && (
+        <div className="flex-shrink-0 bg-amber-50 border-t border-amber-200 px-3 py-2 flex items-center justify-between">
+          <p className="text-xs text-amber-800">メッセージを編集中</p>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingId(null);
+              setInput("");
+            }}
+            className="text-amber-700 hover:text-amber-900 text-xs"
+          >
+            キャンセル
+          </button>
+        </div>
+      )}
+
+      {/* メディアプレビュー */}
+      {uploadPreview && (
+        <div className="flex-shrink-0 bg-neutral-100 border-t border-neutral-200 px-3 py-2">
+          <div className="relative inline-block">
+            {uploadPreview.mediaType === "video" ? (
+              <video
+                src={uploadPreview.url}
+                className="max-h-32 rounded-lg"
+                controls={false}
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={uploadPreview.url}
+                alt="preview"
+                className="max-h-32 rounded-lg"
+              />
+            )}
+            <button
+              type="button"
+              onClick={() => setUploadPreview(null)}
+              className="absolute -top-2 -right-2 bg-neutral-800 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+              aria-label="削除"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 入力欄 */}
       <div className="flex-shrink-0 bg-white border-t border-neutral-200 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {error && <p className="text-xs text-red-600 mb-2 px-1">{error}</p>}
         <div className="flex items-end gap-2">
+          {/* メディア添付ボタン */}
+          {!editingId && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*,.gif"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading || isPending}
+                className="flex-shrink-0 h-10 w-10 rounded-full bg-neutral-100 hover:bg-neutral-200 transition flex items-center justify-center disabled:opacity-40"
+                aria-label="メディアを添付"
+              >
+                {isUploading ? (
+                  <span className="text-xs">…</span>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="w-5 h-5 text-neutral-600"
+                  >
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                  </svg>
+                )}
+              </button>
+            </>
+          )}
+
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="メッセージを入力"
+            placeholder={editingId ? "編集内容を入力" : "メッセージを入力"}
             rows={1}
-            className="flex-1 resize-none rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 max-h-32"
+            className={`flex-1 resize-none rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-base focus:outline-none focus:ring-2 ${theme.focusRing} max-h-32`}
             style={{ minHeight: "40px", fontSize: "16px" }}
           />
           <button
             type="button"
             onClick={handleSend}
-            disabled={!input.trim() || isPending}
-            className="flex-shrink-0 h-10 w-10 rounded-full bg-brand-500 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-600 transition flex items-center justify-center"
+            disabled={(!input.trim() && !uploadPreview) || isPending}
+            className={`flex-shrink-0 h-10 w-10 rounded-full ${theme.myBubbleBg} ${theme.myBubbleText} text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center`}
             aria-label="送信"
           >
             <svg
@@ -204,34 +534,93 @@ export function ChatRoomView({
           </button>
         </div>
       </div>
+
+      {/* 長押しメニュー */}
+      {menuFor && (
+        <MessageMenu
+          isMine={menuFor.user_id === currentUserId}
+          isDeleted={!!menuFor.deleted_at}
+          hasContent={!!menuFor.content}
+          onAction={(action) => handleMenuAction(menuFor, action)}
+          onClose={() => setMenuFor(null)}
+        />
+      )}
+
+      {/* 絵文字ピッカー */}
+      {pickerFor && (
+        <ReactionPicker
+          onSelect={handleEmojiSelect}
+          onClose={() => setPickerFor(null)}
+        />
+      )}
     </div>
   );
 }
 
 // ===========================================
-// メッセージ吹き出しコンポーネント（全員アイコン表示）
+// メッセージ吹き出しコンポーネント
 // ===========================================
 
 type MessageBubbleProps = {
+  refSetter: (el: HTMLDivElement | null) => void;
   isMine: boolean;
   sender: SenderInfo | undefined;
   showSender: boolean;
-  content: string;
-  createdAt: string;
+  message: MessageRow;
   isDeleted: boolean;
   isEdited: boolean;
+  reactions: Record<string, { count: number; mine: boolean }>;
+  replyToMsg: MessageRow | null;
+  replyToSender: SenderInfo | undefined;
+  highlighted: boolean;
+  themeMyBubble: string;
+  onLongPress: () => void;
+  onReactionClick: (emoji: string) => void;
+  onReplyClick: () => void;
 };
 
 function MessageBubble({
+  refSetter,
   isMine,
   sender,
   showSender,
-  content,
-  createdAt,
+  message,
   isDeleted,
   isEdited,
+  reactions,
+  replyToMsg,
+  replyToSender,
+  highlighted,
+  themeMyBubble,
+  onLongPress,
+  onReactionClick,
+  onReplyClick,
 }: MessageBubbleProps) {
-  const time = formatTime(createdAt);
+  const time = formatTime(message.created_at);
+  const longPressTimer = useRef<number | null>(null);
+  const longPressTriggered = useRef(false);
+
+  const handlePointerDown = (e: ReactPointerEvent) => {
+    if (isDeleted) return;
+    longPressTriggered.current = false;
+    longPressTimer.current = window.setTimeout(() => {
+      longPressTriggered.current = true;
+      if ("vibrate" in navigator) navigator.vibrate(30);
+      onLongPress();
+    }, 300);
+  };
+
+  const handlePointerUp = () => {
+    if (longPressTimer.current) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handlePointerCancel = handlePointerUp;
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+  };
 
   const avatar = (
     <div className="flex-shrink-0 w-8">
@@ -252,19 +641,70 @@ function MessageBubble({
     </div>
   );
 
-  const bubble = (
+  const bubbleClass = isMine
+    ? `${isDeleted ? "bg-neutral-200 text-neutral-500 italic" : themeMyBubble} rounded-br-md`
+    : `${isDeleted ? "bg-neutral-200 text-neutral-500 italic" : "bg-white text-neutral-800 border border-neutral-200"} rounded-bl-md`;
+
+  const bubbleContent = (
     <div
-      className={`px-3.5 py-2 rounded-2xl text-sm break-words ${
-        isMine
-          ? `${isDeleted ? "bg-neutral-200 text-neutral-500 italic" : "bg-brand-500 text-white"} rounded-br-md`
-          : `${isDeleted ? "bg-neutral-200 text-neutral-500 italic" : "bg-white text-neutral-800 border border-neutral-200"} rounded-bl-md`
+      ref={refSetter}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+      onPointerLeave={handlePointerCancel}
+      onContextMenu={handleContextMenu}
+      className={`px-3.5 py-2 rounded-2xl text-sm break-words select-none transition-all ${bubbleClass} ${
+        highlighted ? "ring-2 ring-amber-400 ring-offset-1" : ""
       }`}
+      style={{ touchAction: "manipulation" }}
     >
+      {/* 引用ブロック */}
+      {replyToMsg && !isDeleted && (
+        <button
+          type="button"
+          onClick={onReplyClick}
+          className={`block w-full text-left mb-1.5 pl-2 border-l-2 ${
+            isMine ? "border-white/60" : "border-neutral-400"
+          } opacity-80 hover:opacity-100 transition`}
+        >
+          <p className={`text-[10px] ${isMine ? "text-white/80" : "text-neutral-500"}`}>
+            {replyToSender?.display_name ?? "ユーザー"}
+          </p>
+          <p className={`text-xs truncate ${isMine ? "text-white/90" : "text-neutral-600"}`}>
+            {replyToMsg.deleted_at
+              ? "（削除されたメッセージ）"
+              : replyToMsg.content || (replyToMsg.media_type ? "[メディア]" : "")}
+          </p>
+        </button>
+      )}
+
+      {/* メディア */}
+      {!isDeleted && message.media_url && (
+        <div className="mb-1 -mx-1">
+          {message.media_type === "video" ? (
+            <video
+              src={message.media_url}
+              className="max-w-full max-h-64 rounded-lg"
+              controls
+              preload="metadata"
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={message.media_url}
+              alt="送信画像"
+              className="max-w-full max-h-64 rounded-lg"
+            />
+          )}
+        </div>
+      )}
+
+      {/* テキスト */}
       {isDeleted ? (
         "メッセージの送信を取り消しました"
       ) : (
         <>
-          {content}
+          {message.content}
           {isEdited && (
             <span
               className={`text-[10px] ml-1 ${
@@ -276,6 +716,26 @@ function MessageBubble({
           )}
         </>
       )}
+    </div>
+  );
+
+  const reactionChips = Object.keys(reactions).length > 0 && (
+    <div className={`flex flex-wrap gap-1 mt-1 ${isMine ? "justify-end" : "justify-start"}`}>
+      {Object.entries(reactions).map(([emoji, info]) => (
+        <button
+          key={emoji}
+          type="button"
+          onClick={() => onReactionClick(emoji)}
+          className={`px-1.5 py-0.5 rounded-full text-xs border transition ${
+            info.mine
+              ? "bg-brand-50 border-brand-300 text-neutral-800"
+              : "bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50"
+          }`}
+        >
+          <span className="mr-0.5">{emoji}</span>
+          <span className="text-[10px]">{info.count}</span>
+        </button>
+      ))}
     </div>
   );
 
@@ -292,8 +752,9 @@ function MessageBubble({
             <span className="text-[10px] text-neutral-400 mb-1 select-none flex-shrink-0">
               {time}
             </span>
-            {bubble}
+            {bubbleContent}
           </div>
+          {reactionChips}
         </div>
         {avatar}
       </div>
@@ -310,11 +771,12 @@ function MessageBubble({
           </span>
         )}
         <div className="flex items-end gap-1.5">
-          {bubble}
+          {bubbleContent}
           <span className="text-[10px] text-neutral-400 mb-1 select-none flex-shrink-0">
             {time}
           </span>
         </div>
+        {reactionChips}
       </div>
     </div>
   );
@@ -322,19 +784,7 @@ function MessageBubble({
 
 function formatTime(iso: string): string {
   const date = new Date(iso);
-  const now = new Date();
-  const isSameDay =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate();
-
   const hh = String(date.getHours()).padStart(2, "0");
   const mm = String(date.getMinutes()).padStart(2, "0");
-
-  if (isSameDay) {
-    return `${hh}:${mm}`;
-  }
-  const mo = date.getMonth() + 1;
-  const d = date.getDate();
-  return `${mo}/${d} ${hh}:${mm}`;
+  return `${hh}:${mm}`;
 }

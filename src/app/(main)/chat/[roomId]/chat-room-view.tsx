@@ -90,6 +90,9 @@ export function ChatRoomView({
   const [isUploading, setIsUploading] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
+  // visualViewport高さ
+  const [vvHeight, setVvHeight] = useState<number | null>(null);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -97,6 +100,18 @@ export function ChatRoomView({
 
   const theme = getTheme(themeColor);
   const font = getFont(chatFont);
+
+  // visualViewportの高さを監視
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const update = () => setVvHeight(vv.height);
+    update();
+    vv.addEventListener("resize", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+    };
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -307,9 +322,13 @@ export function ChatRoomView({
     }
   };
 
+  // 外側コンテナの高さ: visualViewport が取れたらそれ、なければdvh
+  const containerHeight = vvHeight ? `${vvHeight}px` : "100dvh";
+
   return (
     <div
-      className={`flex flex-col h-[calc(100dvh-57px)] ${theme.chatBg} ${font.className}`}
+      className={`flex flex-col ${theme.chatBg} ${font.className}`}
+      style={{ height: containerHeight }}
     >
       {/* ヘッダー */}
       <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3">
@@ -374,9 +393,8 @@ export function ChatRoomView({
         <div ref={bottomRef} />
       </div>
 
-      {/* 入力欄エリア（flexアイテム） */}
-      <div className="flex-shrink-0 bg-white border-t border-neutral-200 z-10">
-        {/* 返信プレビュー */}
+      {/* 入力欄エリア */}
+      <div className="flex-shrink-0 bg-white border-t border-neutral-200">
         {replyTo && (
           <div className="bg-neutral-100 border-b border-neutral-200 px-3 py-2 flex items-start gap-2">
             <div className={`w-1 self-stretch rounded-full ${theme.accentBorder}`} />
@@ -401,7 +419,6 @@ export function ChatRoomView({
           </div>
         )}
 
-        {/* 編集プレビュー */}
         {editingId && (
           <div className="bg-amber-50 border-b border-amber-200 px-3 py-2 flex items-center justify-between">
             <p className="text-xs text-amber-800">メッセージを編集中</p>
@@ -418,7 +435,6 @@ export function ChatRoomView({
           </div>
         )}
 
-        {/* メディアプレビュー */}
         {uploadPreview && (
           <div className="bg-neutral-100 border-b border-neutral-200 px-3 py-2">
             <div className="relative inline-block">
@@ -448,7 +464,6 @@ export function ChatRoomView({
           </div>
         )}
 
-        {/* 入力 */}
         <div className="px-3 py-2">
           {error && <p className="text-xs text-red-600 mb-2 px-1">{error}</p>}
           <div className="flex items-end gap-2">

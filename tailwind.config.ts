@@ -1,85 +1,63 @@
-import type { Metadata } from "next";
-import {
-  Noto_Sans_JP,
-  Noto_Serif_JP,
-  Zen_Maru_Gothic,
-  Shippori_Mincho,
-  Yusei_Magic,
-} from "next/font/google";
-import "./globals.css";
+import type { Config } from "tailwindcss";
 
-const notoSansJp = Noto_Sans_JP({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-noto-sans-jp",
-  display: "swap",
-});
-
-const notoSerifJp = Noto_Serif_JP({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-noto-serif-jp",
-  display: "swap",
-});
-
-// チャット用フォント（rounded）
-const zenMaruGothic = Zen_Maru_Gothic({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-zen-maru-gothic",
-  display: "swap",
-});
-
-// チャット用フォント（mincho）
-const shipporiMincho = Shippori_Mincho({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-shippori-mincho",
-  display: "swap",
-});
-
-// チャット用フォント（pop）
-const yuseiMagic = Yusei_Magic({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-yusei-magic",
-  display: "swap",
-});
-
-export const metadata: Metadata = {
-  title: {
-    default: "re trip | 知らない誰かと、知らない景色へ。",
-    template: "%s | re trip",
+const config: Config = {
+  darkMode: ["class"],
+  content: [
+    "./src/pages/**/*.{ts,tsx}",
+    "./src/components/**/*.{ts,tsx}",
+    "./src/app/**/*.{ts,tsx}",
+    "./src/features/**/*.{ts,tsx}",
+  ],
+  theme: {
+    container: { center: true, padding: "1rem", screens: { "2xl": "1280px" } },
+    extend: {
+      colors: {
+        brand: {
+          50: "#F5FAEB",
+          100: "#E8F3D1",
+          200: "#D4E8A8",
+          300: "#BCDC78",
+          400: "#A8D547",
+          500: "#8FC22E",
+          600: "#7AB52C",
+          700: "#5E8E22",
+          800: "#456A1A",
+          900: "#2E4811",
+        },
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+        secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
+        destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
+        muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
+        accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
+        card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
+        popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
+      },
+      fontFamily: {
+        sans: ["var(--font-noto-sans-jp)", "sans-serif"],
+        serif: ["var(--font-noto-serif-jp)", "serif"],
+        rounded: ["var(--font-zen-maru-gothic)", "var(--font-noto-sans-jp)", "sans-serif"],
+        mincho: ["var(--font-shippori-mincho)", "var(--font-noto-serif-jp)", "serif"],
+        pop: ["var(--font-yusei-magic)", "var(--font-noto-sans-jp)", "sans-serif"],
+      },
+      borderRadius: { lg: "var(--radius)", md: "calc(var(--radius) - 2px)", sm: "calc(var(--radius) - 4px)" },
+      keyframes: {
+        "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
+        "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
+        "fade-in": { from: { opacity: "0", transform: "translateY(10px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.6s ease-out",
+      },
+    },
   },
-  description:
-    "関東発の少人数バスツアー。決済後の専用チャットで事前に交流し、当日の旅で関係性を深める。日帰り〜1泊2日の小さな旅へ。",
-  keywords: ["バスツアー", "日帰り旅行", "関東", "少人数", "出会い", "婚活", "友達作り"],
-  openGraph: {
-    title: "re trip | 知らない誰かと、知らない景色へ。",
-    description:
-      "関東発の少人数バスツアー。決済後の専用チャットで事前に交流し、当日の旅で関係性を深める。",
-    type: "website",
-    locale: "ja_JP",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
+  plugins: [require("tailwindcss-animate")],
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html
-      lang="ja"
-      className={`${notoSansJp.variable} ${notoSerifJp.variable} ${zenMaruGothic.variable} ${shipporiMincho.variable} ${yuseiMagic.variable}`}
-    >
-      <body className="font-sans antialiased bg-background text-foreground">
-        {children}
-      </body>
-    </html>
-  );
-}
+export default config;

@@ -90,8 +90,8 @@ export function ChatRoomView({
   const [isUploading, setIsUploading] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
-  // visualViewport高さ
-  const [vvHeight, setVvHeight] = useState<number | null>(null);
+  // visualViewportの実際の高さを保持する
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -101,15 +101,24 @@ export function ChatRoomView({
   const theme = getTheme(themeColor);
   const font = getFont(chatFont);
 
-  // visualViewportの高さを監視
+  // visualViewportで実際の表示高さを検知し、親要素の高さをピタッと合わせる
   useEffect(() => {
     if (typeof window === "undefined" || !window.visualViewport) return;
     const vv = window.visualViewport;
-    const update = () => setVvHeight(vv.height);
+    
+    const update = () => {
+      setViewportHeight(vv.height);
+      // iOS特有の画面ズレを防ぐため、画面を一番上に戻す
+      window.scrollTo(0, 0);
+    };
+    
     update();
     vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update); // iOSSafariのキーボードドラッグ対策
+    
     return () => {
       vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
     };
   }, []);
 
@@ -322,16 +331,17 @@ export function ChatRoomView({
     }
   };
 
-  // 外側コンテナの高さ: visualViewport が取れたらそれ、なければdvh
-  const containerHeight = vvHeight ? `${vvHeight}px` : "100dvh";
-
   return (
     <div
-      className={`flex flex-col ${theme.chatBg} ${font.className}`}
-      style={{ height: containerHeight }}
+      className={`relative flex flex-col w-full ${theme.chatBg} ${font.className}`}
+      style={{
+        // 画面の実際の高さに強制的に合わせる
+        height: viewportHeight ? `${viewportHeight}px` : "100dvh",
+        overflow: "hidden", // 外側の不要なスクロールを防止
+      }}
     >
       {/* ヘッダー */}
-      <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3">
+      <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3 z-10">
         <Link
           href="/chat"
           className="text-xs text-neutral-500 hover:text-neutral-800"
@@ -345,6 +355,7 @@ export function ChatRoomView({
       </div>
 
       {/* メッセージリスト */}
+      {/* paddingBottom などの動的計算を撤去し、単なる内部スクロール領域にする */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
         {messages.length === 0 ? (
           <p className="text-center text-sm text-neutral-400 mt-8">
@@ -393,8 +404,9 @@ export function ChatRoomView({
         <div ref={bottomRef} />
       </div>
 
-      {/* 入力欄エリア */}
-      <div className="flex-shrink-0 bg-white border-t border-neutral-200">
+      {/* 入力欄エリア（flex-shrink-0で下部に配置） */}
+      <div className="flex-shrink-0 bg-white border-t border-neutral-200 z-10 relative">
+        {/* 返信プレビュー */}
         {replyTo && (
           <div className="bg-neutral-100 border-b border-neutral-200 px-3 py-2 flex items-start gap-2">
             <div className={`w-1 self-stretch rounded-full ${theme.accentBorder}`} />
@@ -419,6 +431,7 @@ export function ChatRoomView({
           </div>
         )}
 
+        {/* 編集プレビュー */}
         {editingId && (
           <div className="bg-amber-50 border-b border-amber-200 px-3 py-2 flex items-center justify-between">
             <p className="text-xs text-amber-800">メッセージを編集中</p>
@@ -435,6 +448,7 @@ export function ChatRoomView({
           </div>
         )}
 
+        {/* メディアプレビュー */}
         {uploadPreview && (
           <div className="bg-neutral-100 border-b border-neutral-200 px-3 py-2">
             <div className="relative inline-block">
@@ -464,6 +478,7 @@ export function ChatRoomView({
           </div>
         )}
 
+        {/* 入力 */}
         <div className="px-3 py-2">
           {error && <p className="text-xs text-red-600 mb-2 px-1">{error}</p>}
           <div className="flex items-end gap-2">

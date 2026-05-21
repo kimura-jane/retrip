@@ -22,7 +22,7 @@ import {
 } from "@/features/chat/actions";
 import { ReactionPicker } from "@/features/chat/reaction-picker";
 import { MessageMenu, type MessageMenuAction } from "@/features/chat/message-menu";
-import { getTheme, getFont } from "@/features/chat/themes";
+import { getTheme, getFont } from "@/features/chat/theme";
 import type { ChatThemeColor, ChatFont } from "@/types/database";
 
 type MessageRow = {
@@ -600,7 +600,7 @@ function MessageBubble({
   const longPressTimer = useRef<number | null>(null);
   const longPressTriggered = useRef(false);
 
-  const handlePointerDown = (e: ReactPointerEvent) => {
+  const handlePointerDown = (_e: ReactPointerEvent) => {
     if (isDeleted) return;
     longPressTriggered.current = false;
     longPressTimer.current = window.setTimeout(() => {

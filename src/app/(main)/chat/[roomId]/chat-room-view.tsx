@@ -79,28 +79,16 @@ export function ChatRoomView({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // 編集モード
   const [editingId, setEditingId] = useState<string | null>(null);
-  // 返信モード
   const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
-
-  // 長押しメニュー
   const [menuFor, setMenuFor] = useState<MessageRow | null>(null);
-  // リアクションピッカー
   const [pickerFor, setPickerFor] = useState<MessageRow | null>(null);
-
-  // メディアアップロード
   const [uploadPreview, setUploadPreview] = useState<{
     url: string;
     mediaType: "image" | "video" | "gif";
   } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-
-  // ハイライト中のメッセージID（引用タップ時）
   const [highlightId, setHighlightId] = useState<string | null>(null);
-
-  // ビューポート高さ（iOSキーボード対応）
-  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -110,28 +98,10 @@ export function ChatRoomView({
   const theme = getTheme(themeColor);
   const font = getFont(chatFont);
 
-  // visualViewportでキーボード表示時の高さを取得
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.visualViewport) return;
-    const vv = window.visualViewport;
-    const update = () => {
-      setViewportHeight(vv.height);
-    };
-    update();
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
-    return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-    };
-  }, []);
-
-  // 自動スクロール（新着メッセージ時のみ）
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  // Realtime購読
   useEffect(() => {
     const channel = supabase
       .channel(`room:${roomId}`)
@@ -205,7 +175,6 @@ export function ChatRoomView({
     };
   }, [roomId, senders, supabase]);
 
-  // リアクションをメッセージごとにグループ化
   const reactionsByMessage = useMemo(() => {
     const map: Record<string, Record<string, { count: number; mine: boolean }>> = {};
     for (const r of reactions) {
@@ -219,14 +188,12 @@ export function ChatRoomView({
     return map;
   }, [reactions, currentUserId]);
 
-  // 送信処理
   const handleSend = () => {
     const content = input.trim();
     const hasMedia = !!uploadPreview;
     if ((!content && !hasMedia) || isPending) return;
     setError(null);
 
-    // 編集モード
     if (editingId) {
       const targetId = editingId;
       const newContent = content;
@@ -239,7 +206,6 @@ export function ChatRoomView({
       return;
     }
 
-    // 通常送信
     const optimisticInput = input;
     const optimisticReply = replyTo?.id ?? null;
     const optimisticMedia = uploadPreview;
@@ -268,7 +234,6 @@ export function ChatRoomView({
     }
   };
 
-  // メニューアクション
   const handleMenuAction = (msg: MessageRow, action: MessageMenuAction) => {
     if (action === "react") {
       setPickerFor(msg);
@@ -291,7 +256,6 @@ export function ChatRoomView({
     }
   };
 
-  // リアクション選択
   const handleEmojiSelect = (emoji: string) => {
     if (!pickerFor) return;
     const targetId = pickerFor.id;
@@ -305,7 +269,6 @@ export function ChatRoomView({
     });
   };
 
-  // 既存リアクションのトグル（バブル下のチップタップ時）
   const toggleReaction = (messageId: string, emoji: string) => {
     const existing = reactionsByMessage[messageId]?.[emoji];
     startTransition(async () => {
@@ -317,11 +280,10 @@ export function ChatRoomView({
     });
   };
 
-  // ファイル選択 → アップロード
   const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    e.target.value = ""; // 同じファイル再選択許可
+    e.target.value = "";
     setIsUploading(true);
     setError(null);
     const formData = new FormData();
@@ -336,7 +298,6 @@ export function ChatRoomView({
     }
   };
 
-  // 引用元へジャンプ
   const jumpToMessage = (messageId: string) => {
     const el = messageRefs.current[messageId];
     if (el) {
@@ -346,15 +307,9 @@ export function ChatRoomView({
     }
   };
 
-  // 動的な高さ計算（visualViewportが取れたらそれを優先）
-  const containerStyle = viewportHeight
-    ? { height: `${viewportHeight - 57}px` }
-    : undefined;
-
   return (
     <div
-      className={`flex flex-col ${theme.chatBg} ${font.className}`}
-      style={containerStyle ?? { height: "calc(100dvh - 57px)" }}
+      className={`flex flex-col h-[calc(100dvh-57px)] ${theme.chatBg} ${font.className}`}
     >
       {/* ヘッダー */}
       <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3">
@@ -495,7 +450,6 @@ export function ChatRoomView({
       <div className="flex-shrink-0 bg-white border-t border-neutral-200 px-3 py-2">
         {error && <p className="text-xs text-red-600 mb-2 px-1">{error}</p>}
         <div className="flex items-end gap-2">
-          {/* メディア添付ボタン */}
           {!editingId && (
             <>
               <input
@@ -558,7 +512,6 @@ export function ChatRoomView({
         </div>
       </div>
 
-      {/* 長押しメニュー */}
       {menuFor && (
         <MessageMenu
           isMine={menuFor.user_id === currentUserId}
@@ -569,7 +522,6 @@ export function ChatRoomView({
         />
       )}
 
-      {/* 絵文字ピッカー */}
       {pickerFor && (
         <ReactionPicker
           onSelect={handleEmojiSelect}
@@ -579,10 +531,6 @@ export function ChatRoomView({
     </div>
   );
 }
-
-// ===========================================
-// メッセージ吹き出しコンポーネント
-// ===========================================
 
 type MessageBubbleProps = {
   refSetter: (el: HTMLDivElement | null) => void;
@@ -681,7 +629,6 @@ function MessageBubble({
       }`}
       style={{ touchAction: "manipulation" }}
     >
-      {/* 引用ブロック */}
       {replyToMsg && !isDeleted && (
         <button
           type="button"
@@ -701,7 +648,6 @@ function MessageBubble({
         </button>
       )}
 
-      {/* メディア */}
       {!isDeleted && message.media_url && (
         <div className="mb-1 -mx-1">
           {message.media_type === "video" ? (
@@ -722,7 +668,6 @@ function MessageBubble({
         </div>
       )}
 
-      {/* テキスト */}
       {isDeleted ? (
         "メッセージの送信を取り消しました"
       ) : (

@@ -20,7 +20,7 @@ export default async function MyPageEditPage() {
 
   const { data } = await supabase
     .from("users")
-    .select("display_name, bio, gender, birth_date")
+    .select("display_name,bio,gender,birth_date")
     .eq("id", user.id)
     .maybeSingle();
 

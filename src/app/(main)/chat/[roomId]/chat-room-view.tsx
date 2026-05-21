@@ -90,6 +90,9 @@ export function ChatRoomView({
   const [isUploading, setIsUploading] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
+  // visualViewportの実際の高さを保持
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -98,9 +101,30 @@ export function ChatRoomView({
   const theme = getTheme(themeColor);
   const font = getFont(chatFont);
 
+  // visualViewportで高さを監視し、iOSの強制スクロールを打ち消す
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+
+    const updateHeight = () => {
+      // iOS特有の画面ズレを防ぐためスクロールをトップに固定
+      window.scrollTo(0, 0);
+      setViewportHeight(vv.height);
+    };
+
+    updateHeight();
+    vv.addEventListener("resize", updateHeight);
+    vv.addEventListener("scroll", updateHeight);
+
+    return () => {
+      vv.removeEventListener("resize", updateHeight);
+      vv.removeEventListener("scroll", updateHeight);
+    };
+  }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "auto" });
+  }, [messages.length, viewportHeight]); // 高さ変動時（キーボード表示時）も追従させる
 
   useEffect(() => {
     const channel = supabase
@@ -308,9 +332,14 @@ export function ChatRoomView({
   };
 
   return (
-    <div className={`min-h-screen flex flex-col ${theme.chatBg} ${font.className}`}>
-      {/* ヘッダー：画面上部に固定 */}
-      <div className="sticky top-0 z-20 bg-white border-b border-neutral-200 px-4 py-3">
+    // position: fixed を使い、画面左上に完全固定。
+    // 高さは visualViewport に同期させ、キーボード表示時に全体が綺麗に縮むようにする。
+    <div
+      className={`fixed top-0 left-0 w-full flex flex-col overflow-hidden ${theme.chatBg} ${font.className}`}
+      style={{ height: viewportHeight ? `${viewportHeight}px` : "100dvh" }}
+    >
+      {/* ヘッダー */}
+      <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3 z-10">
         <Link
           href="/chat"
           className="text-xs text-neutral-500 hover:text-neutral-800"
@@ -323,8 +352,8 @@ export function ChatRoomView({
         )}
       </div>
 
-      {/* メッセージリスト：高さを縛らずに自然配置 */}
-      <div className="flex-1 px-3 py-4 space-y-1">
+      {/* メッセージリスト */}
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 overscroll-contain">
         {messages.length === 0 ? (
           <p className="text-center text-sm text-neutral-400 mt-8">
             まだメッセージはありません。最初の投稿をしてみよう
@@ -369,11 +398,13 @@ export function ChatRoomView({
             );
           })
         )}
-        <div ref={bottomRef} className="h-4" />
+        {/* スクロールのためのダミー要素 */}
+        <div ref={bottomRef} className="h-2" />
       </div>
 
-      {/* 入力エリア：最下部に固定（キーボード表示時はiOS標準の動きで押し上げさせる） */}
-      <div className="sticky bottom-0 z-20 bg-white border-t border-neutral-200">
+      {/* 入力欄エリア（flex-shrink-0で下部に配置） */}
+      {/* padding-bottomに pb-safe を当てて、キーボード非表示時のiPhoneホームバー対策をする */}
+      <div className="flex-shrink-0 bg-white border-t border-neutral-200 z-10 relative pb-safe">
         {/* 返信プレビュー */}
         {replyTo && (
           <div className="bg-neutral-100 border-b border-neutral-200 px-3 py-2 flex items-start gap-2">
@@ -445,8 +476,8 @@ export function ChatRoomView({
           </div>
         )}
 
-        {/* 入力フォーム本体（下部に適度な余白を設定） */}
-        <div className="px-3 py-2 pb-5">
+        {/* 入力フォーム本体 */}
+        <div className="px-3 py-2">
           {error && <p className="text-xs text-red-600 mb-2 px-1">{error}</p>}
           <div className="flex items-end gap-2">
             {!editingId && (
@@ -532,6 +563,7 @@ export function ChatRoomView({
   );
 }
 
+// ... (MessageBubbleとformatTime関数は全く同じなので省略せずにそのまま使用してください) ...
 type MessageBubbleProps = {
   refSetter: (el: HTMLDivElement | null) => void;
   isMine: boolean;
@@ -726,3 +758,31 @@ function MessageBubble({
       </div>
     );
   }
+
+  return (
+    <div className="flex justify-start items-end gap-2 px-1 py-0.5">
+      {avatar}
+      <div className="flex flex-col items-start max-w-[75%]">
+        {showSender && (
+          <span className="text-[11px] text-neutral-500 mb-0.5 ml-1">
+            {sender?.display_name ?? "不明なユーザー"}
+          </span>
+        )}
+        <div className="flex items-end gap-1.5">
+          {bubbleContent}
+          <span className="text-[10px] text-neutral-400 mb-1 select-none flex-shrink-0">
+            {time}
+          </span>
+        </div>
+        {reactionChips}
+      </div>
+    </div>
+  );
+}
+
+function formatTime(iso: string): string {
+  const date = new Date(iso);
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}

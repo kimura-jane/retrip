@@ -190,14 +190,12 @@ export function ChatRoomView({
   const reactionsByMessage = useMemo(() => {
     const map: Record<string, Record<string, { count: number; mine: boolean }>> = {};
     for (const r of reactions) {
-      if (!map[r.message_id]) map[r.message_id] = {};
-      if (!map[r.message_id][r.emoji]) {
-        map[r.message_id][r.emoji] = { count: 0, mine: false };
-      }
-      map[r.message_id][r.emoji].count++;
-      if (r.user_id === currentUserId) {
-        map[r.message_id][r.emoji].mine = true;
-      }
+      const forMessage = map[r.message_id] ?? {};
+      const entry = forMessage[r.emoji] ?? { count: 0, mine: false };
+      entry.count++;
+      if (r.user_id === currentUserId) entry.mine = true;
+      forMessage[r.emoji] = entry;
+      map[r.message_id] = forMessage;
     }
     return map;
   }, [reactions, currentUserId]);

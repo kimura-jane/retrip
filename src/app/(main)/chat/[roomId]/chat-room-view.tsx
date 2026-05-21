@@ -67,7 +67,6 @@ export function ChatRoomView({
             if (prev.some((m) => m.id === newMessage.id)) return prev;
             return [...prev, newMessage];
           });
-          // 送信者情報が未取得なら取得
           if (!senders[newMessage.user_id]) {
             const { data } = await supabase
               .from("users")
@@ -129,7 +128,7 @@ export function ChatRoomView({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-65px)] bg-[#F5F6F0]">
+    <div className="flex flex-col h-[calc(100dvh-57px)] bg-[#F5F6F0]">
       {/* ヘッダー */}
       <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3">
         <Link
@@ -156,8 +155,7 @@ export function ChatRoomView({
             const sender = senders[msg.user_id];
             const prevMsg = messages[idx - 1];
             const showSender =
-              !isMine &&
-              (!prevMsg || prevMsg.user_id !== msg.user_id);
+              !isMine && (!prevMsg || prevMsg.user_id !== msg.user_id);
             const isDeleted = !!msg.deleted_at;
             const isEdited = !!msg.edited_at && !isDeleted;
 
@@ -179,10 +177,8 @@ export function ChatRoomView({
       </div>
 
       {/* 入力欄 */}
-      <div className="flex-shrink-0 bg-white border-t border-neutral-200 px-3 py-2">
-        {error && (
-          <p className="text-xs text-red-600 mb-2 px-1">{error}</p>
-        )}
+      <div className="flex-shrink-0 bg-white border-t border-neutral-200 px-3 py-2 pb-[env(safe-area-inset-bottom)]">
+        {error && <p className="text-xs text-red-600 mb-2 px-1">{error}</p>}
         <div className="flex items-end gap-2">
           <textarea
             value={input}
@@ -270,7 +266,6 @@ function MessageBubble({
 
   return (
     <div className="flex justify-start items-end gap-2 px-1 py-0.5">
-      {/* アバター（連続発言では非表示でスペースだけ確保） */}
       <div className="flex-shrink-0 w-8">
         {showSender && (
           <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-xs text-neutral-600 overflow-hidden">

@@ -6,9 +6,5 @@ import type { ReactNode } from "react";
  * ここで打ち消して画面全幅・余白なしにする。
  */
 export default function ChatRoomLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="-mx-6 -my-8 sm:-mx-6 sm:-my-8">
-      <div className="max-w-2xl mx-auto">{children}</div>
-    </div>
-  );
+  return <div className="-mx-6 -my-8">{children}</div>;
 }

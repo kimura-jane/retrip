@@ -90,6 +90,9 @@ export function ChatRoomView({
   const [isUploading, setIsUploading] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
+  // キーボードのオフセット（visualViewport.height との差分）
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -97,6 +100,24 @@ export function ChatRoomView({
 
   const theme = getTheme(themeColor);
   const font = getFont(chatFont);
+
+  // visualViewportでキーボード高さを検知
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const update = () => {
+      // window.innerHeight と vv.height の差がキーボードの高さ
+      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKeyboardOffset(offset);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -307,9 +328,13 @@ export function ChatRoomView({
     }
   };
 
+  // 入力欄の合計高さ概算（プレビュー類含む）
+  // メッセージリストはこの分を下にパディング
+  const bottomPadding = 60 + (replyTo ? 40 : 0) + (editingId ? 32 : 0) + (uploadPreview ? 144 : 0) + (error ? 24 : 0);
+
   return (
     <div
-      className={`flex flex-col h-[calc(100dvh-57px)] ${theme.chatBg} ${font.className}`}
+      className={`relative flex flex-col h-[calc(100dvh-57px)] ${theme.chatBg} ${font.className}`}
     >
       {/* ヘッダー */}
       <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3">
@@ -326,7 +351,10 @@ export function ChatRoomView({
       </div>
 
       {/* メッセージリスト */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+      <div
+        className="flex-1 overflow-y-auto px-3 py-4 space-y-1"
+        style={{ paddingBottom: `${bottomPadding}px` }}
+      >
         {messages.length === 0 ? (
           <p className="text-center text-sm text-neutral-400 mt-8">
             まだメッセージはありません。最初の投稿をしてみよう
@@ -374,141 +402,147 @@ export function ChatRoomView({
         <div ref={bottomRef} />
       </div>
 
-      {/* 返信プレビュー */}
-      {replyTo && (
-        <div className="flex-shrink-0 bg-neutral-100 border-t border-neutral-200 px-3 py-2 flex items-start gap-2">
-          <div className={`w-1 self-stretch rounded-full ${theme.accentBorder}`} />
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] text-neutral-500">
-              {senders[replyTo.user_id]?.display_name ?? "ユーザー"} に返信
-            </p>
-            <p className="text-xs text-neutral-700 truncate">
-              {replyTo.deleted_at
-                ? "（削除されたメッセージ）"
-                : replyTo.content || (replyTo.media_type ? "[メディア]" : "")}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setReplyTo(null)}
-            className="text-neutral-400 hover:text-neutral-700 text-lg leading-none px-1"
-            aria-label="返信キャンセル"
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      {/* 編集プレビュー */}
-      {editingId && (
-        <div className="flex-shrink-0 bg-amber-50 border-t border-amber-200 px-3 py-2 flex items-center justify-between">
-          <p className="text-xs text-amber-800">メッセージを編集中</p>
-          <button
-            type="button"
-            onClick={() => {
-              setEditingId(null);
-              setInput("");
-            }}
-            className="text-amber-700 hover:text-amber-900 text-xs"
-          >
-            キャンセル
-          </button>
-        </div>
-      )}
-
-      {/* メディアプレビュー */}
-      {uploadPreview && (
-        <div className="flex-shrink-0 bg-neutral-100 border-t border-neutral-200 px-3 py-2">
-          <div className="relative inline-block">
-            {uploadPreview.mediaType === "video" ? (
-              <video
-                src={uploadPreview.url}
-                className="max-h-32 rounded-lg"
-                controls={false}
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={uploadPreview.url}
-                alt="preview"
-                className="max-h-32 rounded-lg"
-              />
-            )}
+      {/* 入力欄エリア（fixed配置でキーボードに追従） */}
+      <div
+        className="absolute left-0 right-0 bg-white border-t border-neutral-200 transition-[bottom] duration-150"
+        style={{ bottom: `${keyboardOffset}px` }}
+      >
+        {/* 返信プレビュー */}
+        {replyTo && (
+          <div className="bg-neutral-100 border-b border-neutral-200 px-3 py-2 flex items-start gap-2">
+            <div className={`w-1 self-stretch rounded-full ${theme.accentBorder}`} />
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] text-neutral-500">
+                {senders[replyTo.user_id]?.display_name ?? "ユーザー"} に返信
+              </p>
+              <p className="text-xs text-neutral-700 truncate">
+                {replyTo.deleted_at
+                  ? "（削除されたメッセージ）"
+                  : replyTo.content || (replyTo.media_type ? "[メディア]" : "")}
+              </p>
+            </div>
             <button
               type="button"
-              onClick={() => setUploadPreview(null)}
-              className="absolute -top-2 -right-2 bg-neutral-800 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
-              aria-label="削除"
+              onClick={() => setReplyTo(null)}
+              className="text-neutral-400 hover:text-neutral-700 text-lg leading-none px-1"
+              aria-label="返信キャンセル"
             >
               ×
             </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 入力欄 */}
-      <div className="flex-shrink-0 bg-white border-t border-neutral-200 px-3 py-2">
-        {error && <p className="text-xs text-red-600 mb-2 px-1">{error}</p>}
-        <div className="flex items-end gap-2">
-          {!editingId && (
-            <>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,video/*,.gif"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
+        {/* 編集プレビュー */}
+        {editingId && (
+          <div className="bg-amber-50 border-b border-amber-200 px-3 py-2 flex items-center justify-between">
+            <p className="text-xs text-amber-800">メッセージを編集中</p>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingId(null);
+                setInput("");
+              }}
+              className="text-amber-700 hover:text-amber-900 text-xs"
+            >
+              キャンセル
+            </button>
+          </div>
+        )}
+
+        {/* メディアプレビュー */}
+        {uploadPreview && (
+          <div className="bg-neutral-100 border-b border-neutral-200 px-3 py-2">
+            <div className="relative inline-block">
+              {uploadPreview.mediaType === "video" ? (
+                <video
+                  src={uploadPreview.url}
+                  className="max-h-32 rounded-lg"
+                  controls={false}
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={uploadPreview.url}
+                  alt="preview"
+                  className="max-h-32 rounded-lg"
+                />
+              )}
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading || isPending}
-                className="flex-shrink-0 h-10 w-10 rounded-full bg-neutral-100 hover:bg-neutral-200 transition flex items-center justify-center disabled:opacity-40"
-                aria-label="メディアを添付"
+                onClick={() => setUploadPreview(null)}
+                className="absolute -top-2 -right-2 bg-neutral-800 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                aria-label="削除"
               >
-                {isUploading ? (
-                  <span className="text-xs">…</span>
-                ) : (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="w-5 h-5 text-neutral-600"
-                  >
-                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
-                  </svg>
-                )}
+                ×
               </button>
-            </>
-          )}
+            </div>
+          </div>
+        )}
 
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={editingId ? "編集内容を入力" : "メッセージを入力"}
-            rows={1}
-            className={`flex-1 resize-none rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-base focus:outline-none focus:ring-2 ${theme.focusRing} max-h-32`}
-            style={{ minHeight: "40px", fontSize: "16px" }}
-          />
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={(!input.trim() && !uploadPreview) || isPending}
-            className={`flex-shrink-0 h-10 w-10 rounded-full ${theme.myBubbleBg} ${theme.myBubbleText} text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center`}
-            aria-label="送信"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="w-5 h-5"
+        {/* 入力 */}
+        <div className="px-3 py-2">
+          {error && <p className="text-xs text-red-600 mb-2 px-1">{error}</p>}
+          <div className="flex items-end gap-2">
+            {!editingId && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*,.gif"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading || isPending}
+                  className="flex-shrink-0 h-10 w-10 rounded-full bg-neutral-100 hover:bg-neutral-200 transition flex items-center justify-center disabled:opacity-40"
+                  aria-label="メディアを添付"
+                >
+                  {isUploading ? (
+                    <span className="text-xs">…</span>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="w-5 h-5 text-neutral-600"
+                    >
+                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+                    </svg>
+                  )}
+                </button>
+              </>
+            )}
+
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={editingId ? "編集内容を入力" : "メッセージを入力"}
+              rows={1}
+              className={`flex-1 resize-none rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-base focus:outline-none focus:ring-2 ${theme.focusRing} max-h-32`}
+              style={{ minHeight: "40px", fontSize: "16px" }}
+            />
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={(!input.trim() && !uploadPreview) || isPending}
+              className={`flex-shrink-0 h-10 w-10 rounded-full ${theme.myBubbleBg} ${theme.myBubbleText} text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center`}
+              aria-label="送信"
             >
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-            </svg>
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="w-5 h-5"
+              >
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 

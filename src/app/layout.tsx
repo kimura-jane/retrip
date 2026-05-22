@@ -18,14 +18,14 @@ const notoSerifJp = Noto_Serif_JP({
 
 export const metadata: Metadata = {
   title: {
-    default: "re trip | 知らない誰かと、知らない景色へ。",
-    template: "%s | re trip",
+    default: "Re:Trip | 知らない誰かと、知らない景色へ。",
+    template: "%s | Re:Trip",
   },
   description:
     "関東発の少人数バスツアー。決済後の専用チャットで事前に交流し、当日の旅で関係性を深める。日帰り〜1泊2日の小さな旅へ。",
   keywords: ["バスツアー", "日帰り旅行", "関東", "少人数", "出会い", "婚活", "友達作り"],
   openGraph: {
-    title: "re trip | 知らない誰かと、知らない景色へ。",
+    title: "Re:Trip | 知らない誰かと、知らない景色へ。",
     description:
       "関東発の少人数バスツアー。決済後の専用チャットで事前に交流し、当日の旅で関係性を深める。",
     type: "website",

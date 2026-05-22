@@ -12,11 +12,21 @@ type PendingUser = {
   signedUrl: string | null;
 };
 
+type PendingUserRow = {
+  id: string;
+  display_name: string | null;
+  email: string | null;
+  id_document_url: string | null;
+  created_at: string;
+  id_verified: boolean | null;
+  id_rejected_at: string | null;
+};
+
 export default async function VerificationsPage() {
   const supabase = await createClient();
 
   // 未審査ユーザー（書類提出済み・未承認・未却下）を取得
-  const { data: users, error } = await supabase
+  const { data, error } = await supabase
     .from("users")
     .select("id, display_name, email, id_document_url, created_at, id_verified, id_rejected_at")
     .not("id_document_url", "is", null)
@@ -33,16 +43,18 @@ export default async function VerificationsPage() {
     );
   }
 
+  const users = (data ?? []) as unknown as PendingUserRow[];
+
   // 署名URL生成（id_documents バケットは private）
   const pending: PendingUser[] = await Promise.all(
-    (users ?? []).map(async (u) => {
+    users.map(async (u) => {
       const path = extractPath(u.id_document_url);
       let signedUrl: string | null = null;
       if (path) {
-        const { data } = await supabase.storage
+        const { data: signed } = await supabase.storage
           .from("id_documents")
           .createSignedUrl(path, 60 * 60); // 1時間
-        signedUrl = data?.signedUrl ?? null;
+        signedUrl = signed?.signedUrl ?? null;
       }
       return {
         id: u.id,

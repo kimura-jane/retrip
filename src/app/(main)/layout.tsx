@@ -20,7 +20,7 @@ export default async function MainLayout({ children }: { children: ReactNode }) 
         {children}
       </main>
       <footer className="px-6 py-6 text-center text-xs text-neutral-500">
-        © {new Date().getFullYear()} re trip
+        © {new Date().getFullYear()} Re:Trip
       </footer>
     </div>
   );

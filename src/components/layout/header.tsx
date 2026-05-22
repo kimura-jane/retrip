@@ -16,7 +16,7 @@ export async function Header() {
           href="/"
           className="font-serif text-2xl tracking-wide text-neutral-800"
         >
-          re trip
+          Re:Trip
         </Link>
 
         <nav className="flex items-center gap-4">

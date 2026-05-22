@@ -10,7 +10,7 @@ export default function LandingPage() {
       <header className="fixed top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="font-serif text-2xl tracking-widest">
-            re trip
+            Re:Trip
           </Link>
           <nav className="flex items-center gap-3">
             <Link
@@ -42,7 +42,7 @@ export default function LandingPage() {
 
         {/* テキスト */}
         <div className="container relative z-10 text-center animate-fade-in">
-          <p className="mb-6 text-sm tracking-[0.3em] text-brand-700">— RE TRIP —</p>
+          <p className="mb-6 text-sm tracking-[0.3em] text-brand-700">— Re:Trip —</p>
           <h1 className="heading-poetic mb-8 text-foreground">
             知らない誰かと、
             <br />
@@ -97,7 +97,7 @@ export default function LandingPage() {
               少しずつ言葉を交わし、人を知り、景色を想う。
             </p>
             <p>
-              re trip は、関東発の少人数バスツアー。
+              Re:Trip は、関東発の少人数バスツアー。
               <br />
               決済を済ませた瞬間から、専用チャットで仲間と出会えます。
             </p>
@@ -115,7 +115,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="mb-16 text-center">
             <p className="mb-6 text-sm tracking-[0.3em] text-brand-600">FEATURES</p>
-            <h2 className="heading-poetic">re trip の小さな約束</h2>
+            <h2 className="heading-poetic">Re:Trip の小さな約束</h2>
           </div>
 
           <div className="grid gap-12 md:grid-cols-3">
@@ -253,9 +253,9 @@ export default function LandingPage() {
         <div className="container py-12">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div>
-              <p className="font-serif text-2xl tracking-widest">re trip</p>
+              <p className="font-serif text-2xl tracking-widest">Re:Trip</p>
               <p className="mt-2 text-xs text-muted-foreground">
-                © {new Date().getFullYear()} re trip. All rights reserved.
+                © {new Date().getFullYear()} Re:Trip. All rights reserved.
               </p>
             </div>
             <nav className="flex gap-6 text-sm text-muted-foreground">

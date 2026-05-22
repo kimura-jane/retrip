@@ -9,14 +9,14 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           href="/"
           className="font-serif text-2xl tracking-wide text-neutral-800"
         >
-          re trip
+          Re:Trip
         </Link>
       </header>
       <main className="flex-1 flex items-center justify-center px-6 py-8">
         <div className="w-full max-w-md">{children}</div>
       </main>
       <footer className="px-6 py-6 text-center text-xs text-neutral-500">
-        © {new Date().getFullYear()} re trip
+        © {new Date().getFullYear()} Re:Trip
       </footer>
     </div>
   );

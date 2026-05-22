@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic";
 type PendingUser = {
   id: string;
   display_name: string | null;
-  email: string | null;
+  birthdate: string | null;
+  gender: string | null;
   id_document_url: string | null;
   created_at: string;
   signedUrl: string | null;
@@ -15,7 +16,8 @@ type PendingUser = {
 type PendingUserRow = {
   id: string;
   display_name: string | null;
-  email: string | null;
+  birthdate: string | null;
+  gender: string | null;
   id_document_url: string | null;
   created_at: string;
   id_verified: boolean | null;
@@ -28,7 +30,9 @@ export default async function VerificationsPage() {
   // 未審査ユーザー（書類提出済み・未承認・未却下）を取得
   const { data, error } = await supabase
     .from("users")
-    .select("id, display_name, email, id_document_url, created_at, id_verified, id_rejected_at")
+    .select(
+      "id, display_name, birthdate, gender, id_document_url, created_at, id_verified, id_rejected_at"
+    )
     .not("id_document_url", "is", null)
     .eq("id_verified", false)
     .is("id_rejected_at", null)
@@ -59,7 +63,8 @@ export default async function VerificationsPage() {
       return {
         id: u.id,
         display_name: u.display_name,
-        email: u.email,
+        birthdate: u.birthdate,
+        gender: u.gender,
         id_document_url: u.id_document_url,
         created_at: u.created_at,
         signedUrl,
@@ -85,7 +90,8 @@ export default async function VerificationsPage() {
               key={u.id}
               userId={u.id}
               displayName={u.display_name}
-              email={u.email}
+              birthDate={u.birthdate}
+              gender={u.gender}
               createdAt={u.created_at}
               signedUrl={u.signedUrl}
             />

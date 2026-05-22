@@ -10,9 +10,9 @@ import { Card, CardContent } from "@/components/ui/card";
 
 type Props = {
   userId: string;
-  displayName: string;
-  birthDate: string;
-  gender: string;
+  displayName: string | null;
+  birthDate: string | null;
+  gender: string | null;
   createdAt: string;
   signedUrl: string | null;
 };
@@ -29,8 +29,10 @@ export function VerificationRow({
   const [message, setMessage] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
+  const name = displayName ?? "(名前未設定)";
+
   const handleApprove = () => {
-    if (!confirm(`${displayName} さんを承認しますか？`)) return;
+    if (!confirm(`${name} さんを承認しますか？`)) return;
     setMessage(null);
     startTransition(async () => {
       const result = await approveVerificationAction(userId);
@@ -44,7 +46,7 @@ export function VerificationRow({
   };
 
   const handleReject = () => {
-    if (!confirm(`${displayName} さんを却下しますか？\n書類はクリアされ、再提出が必要になります。`)) return;
+    if (!confirm(`${name} さんを却下しますか？\n書類はクリアされ、再提出が必要になります。`)) return;
     setMessage(null);
     startTransition(async () => {
       const result = await rejectVerificationAction(userId);
@@ -62,7 +64,7 @@ export function VerificationRow({
       <Card className="opacity-60">
         <CardContent className="p-4">
           <p className="text-sm text-neutral-600">
-            {displayName}: {message}
+            {name}: {message}
           </p>
         </CardContent>
       </Card>
@@ -75,15 +77,15 @@ export function VerificationRow({
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <p className="text-xs text-neutral-500">表示名</p>
-            <p className="text-neutral-800">{displayName}</p>
+            <p className="text-neutral-800">{name}</p>
           </div>
           <div>
             <p className="text-xs text-neutral-500">生年月日</p>
-            <p className="text-neutral-800">{birthDate}</p>
+            <p className="text-neutral-800">{birthDate ?? "-"}</p>
           </div>
           <div>
             <p className="text-xs text-neutral-500">性別</p>
-            <p className="text-neutral-800">{gender}</p>
+            <p className="text-neutral-800">{gender ?? "-"}</p>
           </div>
           <div>
             <p className="text-xs text-neutral-500">提出日</p>

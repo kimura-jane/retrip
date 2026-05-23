@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 type PendingUser = {
   id: string;
   display_name: string | null;
-  birthdate: string | null;
+  birth_date: string | null;
   gender: string | null;
   id_document_url: string | null;
   created_at: string;
@@ -16,7 +16,7 @@ type PendingUser = {
 type PendingUserRow = {
   id: string;
   display_name: string | null;
-  birthdate: string | null;
+  birth_date: string | null;
   gender: string | null;
   id_document_url: string | null;
   created_at: string;
@@ -31,7 +31,7 @@ export default async function VerificationsPage() {
   const { data, error } = await supabase
     .from("users")
     .select(
-      "id, display_name, birthdate, gender, id_document_url, created_at, id_verified, id_rejected_at"
+      "id, display_name, birth_date, gender, id_document_url, created_at, id_verified, id_rejected_at"
     )
     .not("id_document_url", "is", null)
     .eq("id_verified", false)
@@ -63,7 +63,7 @@ export default async function VerificationsPage() {
       return {
         id: u.id,
         display_name: u.display_name,
-        birthdate: u.birthdate,
+        birth_date: u.birth_date,
         gender: u.gender,
         id_document_url: u.id_document_url,
         created_at: u.created_at,
@@ -90,7 +90,7 @@ export default async function VerificationsPage() {
               key={u.id}
               userId={u.id}
               displayName={u.display_name}
-              birthDate={u.birthdate}
+              birthDate={u.birth_date}
               gender={u.gender}
               createdAt={u.created_at}
               signedUrl={u.signedUrl}

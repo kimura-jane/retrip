@@ -7,6 +7,7 @@ import {
 } from "@/features/admin/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 
 type Props = {
   userId: string;
@@ -28,6 +29,8 @@ export function VerificationRow({
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [reason, setReason] = useState("");
 
   const name = displayName ?? "(名前未設定)";
 
@@ -45,11 +48,16 @@ export function VerificationRow({
     });
   };
 
-  const handleReject = () => {
+  const handleRejectSubmit = () => {
+    const trimmed = reason.trim();
+    if (trimmed.length === 0) {
+      setMessage("却下理由を入力してください");
+      return;
+    }
     if (!confirm(`${name} さんを却下しますか？\n書類はクリアされ、再提出が必要になります。`)) return;
     setMessage(null);
     startTransition(async () => {
-      const result = await rejectVerificationAction(userId);
+      const result = await rejectVerificationAction(userId, trimmed);
       if (result.success) {
         setMessage("却下しました");
         setDone(true);
@@ -109,28 +117,75 @@ export function VerificationRow({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            onClick={handleApprove}
-            disabled={isPending}
-            size="sm"
-          >
-            承認する
-          </Button>
-          <Button
-            type="button"
-            onClick={handleReject}
-            disabled={isPending}
-            size="sm"
-            variant="outline"
-          >
-            却下する
-          </Button>
-          {message && (
-            <span className="text-xs text-neutral-600 ml-2">{message}</span>
-          )}
-        </div>
+        {showRejectForm ? (
+          <div className="space-y-2 rounded border border-neutral-200 p-3 bg-neutral-50">
+            <Label htmlFor={`reason-${userId}`} className="text-xs text-neutral-600">
+              却下理由（ユーザーに表示されます・500文字以内）
+            </Label>
+            <textarea
+              id={`reason-${userId}`}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              maxLength={500}
+              rows={3}
+              className="w-full rounded border border-neutral-300 px-2 py-1 text-sm"
+              placeholder="例：書類の文字が不鮮明です。明るい場所で再撮影をお願いします。"
+            />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                onClick={handleRejectSubmit}
+                disabled={isPending}
+                size="sm"
+                variant="destructive"
+              >
+                却下を確定
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setShowRejectForm(false);
+                  setReason("");
+                  setMessage(null);
+                }}
+                disabled={isPending}
+                size="sm"
+                variant="ghost"
+              >
+                キャンセル
+              </Button>
+              {message && (
+                <span className="text-xs text-red-600 ml-2">{message}</span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              onClick={handleApprove}
+              disabled={isPending}
+              size="sm"
+            >
+              承認する
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setShowRejectForm(true);
+                setMessage(null);
+              }}
+              disabled={isPending}
+              size="sm"
+              variant="outline"
+            >
+              却下する
+            </Button>
+            {message && (
+              <span className="text-xs text-neutral-600 ml-2">{message}</span>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -29,6 +29,7 @@ export async function approveVerificationAction(
       id_verified: true,
       id_verified_at: new Date().toISOString(),
       id_rejected_at: null,
+      id_rejection_reason: null,
     } as never)
     .eq("id", userId);
 
@@ -47,11 +48,20 @@ export async function approveVerificationAction(
 }
 
 export async function rejectVerificationAction(
-  userId: string
+  userId: string,
+  reason: string
 ): Promise<Result> {
   const { supabase, user, isAdmin } = await requireAdmin();
   if (!user) return { success: false, error: "ログインが必要です" };
   if (!isAdmin) return { success: false, error: "管理者権限が必要です" };
+
+  const trimmedReason = reason.trim();
+  if (trimmedReason.length === 0) {
+    return { success: false, error: "却下理由を入力してください" };
+  }
+  if (trimmedReason.length > 500) {
+    return { success: false, error: "却下理由は500文字以内で入力してください" };
+  }
 
   const { error } = await supabase
     .from("users")
@@ -59,6 +69,7 @@ export async function rejectVerificationAction(
       id_verified: false,
       id_document_url: null,
       id_rejected_at: new Date().toISOString(),
+      id_rejection_reason: trimmedReason,
     } as never)
     .eq("id", userId);
 
@@ -69,6 +80,7 @@ export async function rejectVerificationAction(
     action: "reject_verification",
     target_type: "user",
     target_id: userId,
+    note: trimmedReason,
   } as never);
 
   revalidatePath("/admin/verifications");

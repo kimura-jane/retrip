@@ -176,11 +176,13 @@ export default async function MyPage() {
                   </p>
                 </div>
               )}
-              <Link href="/mypage/id-upload">
-                <Button size="sm" variant="outline">
-                  書類を再提出する
-                </Button>
-              </Link>
+              <div>
+                <Link href="/mypage/id-upload">
+                  <Button size="sm" variant="outline">
+                    書類を再提出する
+                  </Button>
+                </Link>
+              </div>
               <p className="text-xs text-red-600">
                 再提出後、3営業日以内に判定結果をお知らせします。
               </p>

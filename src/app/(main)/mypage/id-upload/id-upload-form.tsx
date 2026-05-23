@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { uploadIdDocumentAction, type ActionResult } from "@/features/user/actions";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,15 @@ export function IdUploadForm() {
     null
   );
 
-  if (state?.success) {
-    setTimeout(() => router.push("/mypage"), 1500);
-  }
+  useEffect(() => {
+    if (state?.success) {
+      const timer = setTimeout(() => {
+        router.push("/mypage");
+        router.refresh();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [state, router]);
 
   return (
     <form action={formAction} className="space-y-5">

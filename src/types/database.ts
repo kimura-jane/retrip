@@ -80,6 +80,7 @@ export interface Database {
           id_verified: boolean;
           id_verified_at: string | null;
           id_rejected_at: string | null;
+          id_rejection_reason: string | null;
           chat_theme_color: ChatThemeColor;
           chat_font: ChatFont;
           created_at: string;
@@ -95,6 +96,7 @@ export interface Database {
           id_verified?: boolean;
           id_verified_at?: string | null;
           id_rejected_at?: string | null;
+          id_rejection_reason?: string | null;
           chat_theme_color?: ChatThemeColor;
           chat_font?: ChatFont;
           created_at?: string;
@@ -110,6 +112,7 @@ export interface Database {
           id_verified?: boolean;
           id_verified_at?: string | null;
           id_rejected_at?: string | null;
+          id_rejection_reason?: string | null;
           chat_theme_color?: ChatThemeColor;
           chat_font?: ChatFont;
           created_at?: string;

@@ -16,6 +16,8 @@ type UsersUpdatePayload = {
   gender?: Gender;
   birth_date?: string;
   id_document_url?: string | null;
+  id_rejected_at?: string | null;
+  id_rejection_reason?: string | null;
 };
 
 export async function updateProfileAction(
@@ -110,6 +112,8 @@ export async function uploadIdDocumentAction(
 
   const idPayload: UsersUpdatePayload = {
     id_document_url: path,
+    id_rejected_at: null,
+    id_rejection_reason: null,
   };
 
   const { error: updateError } = await supabase

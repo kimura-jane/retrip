@@ -131,7 +131,7 @@ export function VerificationRow({
               className="w-full rounded border border-neutral-300 px-2 py-1 text-sm"
               placeholder="例：書類の文字が不鮮明です。明るい場所で再撮影をお願いします。"
             />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 type="button"
                 onClick={handleRejectSubmit}
@@ -160,7 +160,7 @@ export function VerificationRow({
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               type="button"
               onClick={handleApprove}

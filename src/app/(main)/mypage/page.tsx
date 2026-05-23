@@ -17,9 +17,13 @@ type ProfileRow = {
   avatar_url: string | null;
   id_document_url: string | null;
   id_verified: boolean | null;
+  id_rejected_at: string | null;
+  id_rejection_reason: string | null;
   chat_theme_color: ChatThemeColor | null;
   chat_font: ChatFont | null;
 };
+
+type VerificationStatus = "verified" | "reviewing" | "rejected" | "none";
 
 export default async function MyPage() {
   const supabase = await createClient();
@@ -32,7 +36,7 @@ export default async function MyPage() {
   const { data } = await supabase
     .from("users")
     .select(
-      "display_name,bio,gender,birth_date,avatar_url,id_document_url,id_verified,chat_theme_color,chat_font"
+      "display_name,bio,gender,birth_date,avatar_url,id_document_url,id_verified,id_rejected_at,id_rejection_reason,chat_theme_color,chat_font"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -41,15 +45,33 @@ export default async function MyPage() {
 
   const hasSubmittedId = !!profile?.id_document_url;
   const isVerified = profile?.id_verified === true;
+  const isRejected = !isVerified && !hasSubmittedId && !!profile?.id_rejected_at;
 
-  let verificationLabel: { text: string; variant: "default" | "secondary" | "outline" };
+  let status: VerificationStatus;
   if (isVerified) {
-    verificationLabel = { text: "承認済み", variant: "default" };
+    status = "verified";
+  } else if (isRejected) {
+    status = "rejected";
   } else if (hasSubmittedId) {
-    verificationLabel = { text: "審査中", variant: "secondary" };
+    status = "reviewing";
   } else {
-    verificationLabel = { text: "未提出", variant: "outline" };
+    status = "none";
   }
+
+  const badgeMap: Record<
+    VerificationStatus,
+    { text: string; variant: "default" | "secondary" | "outline" | "destructive" }
+  > = {
+    verified: { text: "承認済み", variant: "default" },
+    reviewing: { text: "審査中", variant: "secondary" },
+    rejected: { text: "却下", variant: "destructive" },
+    none: { text: "未提出", variant: "outline" },
+  };
+  const verificationLabel = badgeMap[status];
+
+  const rejectedAtText = profile?.id_rejected_at
+    ? new Date(profile.id_rejected_at).toLocaleDateString("ja-JP")
+    : null;
 
   return (
     <div className="space-y-6">
@@ -121,15 +143,48 @@ export default async function MyPage() {
             ツアー参加には本人確認書類のご提出が必要です。
             運転免許証、パスポート、マイナンバーカード（表面のみ）などをご提出ください。
           </p>
-          {!isVerified && !hasSubmittedId && (
+
+          {status === "none" && (
             <Link href="/mypage/id-upload">
               <Button size="sm">本人確認書類を提出する</Button>
             </Link>
           )}
-          {!isVerified && hasSubmittedId && (
+
+          {status === "reviewing" && (
             <p className="text-xs text-neutral-500">
-              書類を確認中です。承認まで1〜3営業日いただきます。
+              書類を確認中です。申請から3営業日以内に判定結果をお知らせします。
             </p>
+          )}
+
+          {status === "rejected" && (
+            <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-3">
+              <div>
+                <p className="text-sm font-medium text-red-700">
+                  本人確認書類が却下されました
+                </p>
+                {rejectedAtText && (
+                  <p className="text-xs text-red-600 mt-0.5">
+                    却下日：{rejectedAtText}
+                  </p>
+                )}
+              </div>
+              {profile?.id_rejection_reason && (
+                <div>
+                  <p className="text-xs text-red-600 mb-1">却下理由</p>
+                  <p className="text-sm text-red-700 whitespace-pre-wrap">
+                    {profile.id_rejection_reason}
+                  </p>
+                </div>
+              )}
+              <Link href="/mypage/id-upload">
+                <Button size="sm" variant="outline">
+                  書類を再提出する
+                </Button>
+              </Link>
+              <p className="text-xs text-red-600">
+                再提出後、3営業日以内に判定結果をお知らせします。
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>

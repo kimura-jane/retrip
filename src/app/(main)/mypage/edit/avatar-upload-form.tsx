@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { uploadAvatarAction, type ActionResult } from "@/features/user/actions";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,7 +11,6 @@ type Props = {
 };
 
 export function AvatarUploadForm({ currentAvatarUrl, displayName }: Props) {
-  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
@@ -23,12 +21,10 @@ export function AvatarUploadForm({ currentAvatarUrl, displayName }: Props) {
 
   useEffect(() => {
     if (state?.success) {
-      setPreviewUrl(null);
-      setSelectedFileName(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      router.refresh();
+      // 成功したらページ全体をリロード（router.refresh だとクラッシュする場合があるため）
+      window.location.href = "/mypage/edit";
     }
-  }, [state, router]);
+  }, [state]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -45,6 +41,7 @@ export function AvatarUploadForm({ currentAvatarUrl, displayName }: Props) {
     reader.readAsDataURL(file);
   };
 
+  const initial = displayName.length > 0 ? displayName.charAt(0) : "?";
   const displayUrl = previewUrl ?? currentAvatarUrl;
 
   return (
@@ -52,7 +49,7 @@ export function AvatarUploadForm({ currentAvatarUrl, displayName }: Props) {
       <div className="flex items-center gap-4">
         <Avatar className="h-20 w-20">
           {displayUrl ? <AvatarImage src={displayUrl} alt={displayName} /> : null}
-          <AvatarFallback>{displayName[0] ?? "?"}</AvatarFallback>
+          <AvatarFallback>{initial}</AvatarFallback>
         </Avatar>
         <div className="space-y-2">
           <input
@@ -79,7 +76,7 @@ export function AvatarUploadForm({ currentAvatarUrl, displayName }: Props) {
       )}
 
       {state?.success && (
-        <p className="text-sm text-brand-600">{state.message ?? "更新しました"}</p>
+        <p className="text-sm text-green-700">{state.message ?? "更新しました"}</p>
       )}
 
       <Button type="submit" size="sm" disabled={isPending || !selectedFileName}>

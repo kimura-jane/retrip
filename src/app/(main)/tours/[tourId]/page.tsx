@@ -2,7 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { MeetingPoint } from "@/types/database";
+import type { Database, MeetingPoint } from "@/types/database";
+
+type TourRow = Database["public"]["Tables"]["tours"]["Row"];
 
 type Params = Promise<{ tourId: string }>;
 
@@ -10,11 +12,13 @@ export default async function TourDetailPage({ params }: { params: Params }) {
   const { tourId } = await params;
 
   const supabase = await createClient();
-  const { data: tour } = await supabase
+  const { data } = await supabase
     .from("tours")
     .select("*")
     .eq("id", tourId)
     .maybeSingle();
+
+  const tour = data as TourRow | null;
 
   if (!tour) {
     notFound();

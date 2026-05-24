@@ -13,14 +13,11 @@ export default function LandingPage() {
             Re:Trip
           </Link>
           <nav className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="hidden text-sm text-muted-foreground hover:text-foreground sm:block"
-            >
-              ログイン
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/login">ログイン</Link>
+            </Button>
             <Button asChild size="sm" className="bg-brand-400 text-white hover:bg-brand-600">
-              <Link href="/signup">はじめる</Link>
+              <Link href="/signup">新規登録</Link>
             </Button>
           </nav>
         </div>
@@ -59,8 +56,8 @@ export default function LandingPage() {
               size="lg"
               className="bg-brand-400 px-8 text-white hover:bg-brand-600"
             >
-              <Link href="/tours">
-                ツアーを見る
+              <Link href="/signup">
+                新規登録
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -70,7 +67,7 @@ export default function LandingPage() {
               variant="outline"
               className="border-brand-400 px-8 text-brand-700 hover:bg-brand-50"
             >
-              <Link href="/signup">無料ではじめる</Link>
+              <Link href="/login">ログイン</Link>
             </Button>
           </div>
         </div>
@@ -169,20 +166,6 @@ export default function LandingPage() {
               title="川下りと焚き火飯"
             />
           </div>
-
-          <div className="mt-12 text-center">
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="border-brand-400 text-brand-700 hover:bg-brand-50"
-            >
-              <Link href="/tours">
-                すべてのツアーを見る
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
         </div>
       </section>
 
@@ -235,16 +218,26 @@ export default function LandingPage() {
           <p className="text-airy mb-12 text-muted-foreground">
             無料登録で、ツアーの詳細や仲間との出会いがはじまります。
           </p>
-          <Button
-            asChild
-            size="lg"
-            className="bg-brand-400 px-12 text-white hover:bg-brand-600"
-          >
-            <Link href="/signup">
-              はじめる
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Button
+              asChild
+              size="lg"
+              className="bg-brand-400 px-12 text-white hover:bg-brand-600"
+            >
+              <Link href="/signup">
+                新規登録
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="border-brand-400 px-12 text-brand-700 hover:bg-brand-50"
+            >
+              <Link href="/login">ログイン</Link>
+            </Button>
+          </div>
         </div>
       </section>
 

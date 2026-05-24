@@ -22,12 +22,6 @@ export async function Header() {
           {user ? (
             <>
               <Link
-                href="/tours"
-                className="text-sm text-neutral-700 hover:text-brand-600 transition"
-              >
-                ツアー
-              </Link>
-              <Link
                 href="/chat"
                 className="text-sm text-neutral-700 hover:text-brand-600 transition"
               >
@@ -42,14 +36,15 @@ export async function Header() {
             </>
           ) : (
             <>
-              <Link
-                href="/login"
-                className="text-sm text-neutral-700 hover:text-brand-600 transition"
-              >
-                ログイン
+              <Link href="/login">
+                <Button size="sm" className="bg-brand-200 text-brand-800 hover:bg-brand-300">
+                  ログイン
+                </Button>
               </Link>
               <Link href="/signup">
-                <Button size="sm">新規登録</Button>
+                <Button size="sm" className="bg-brand-400 text-white hover:bg-brand-600">
+                  新規登録
+                </Button>
               </Link>
             </>
           )}

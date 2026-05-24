@@ -24,10 +24,6 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 leading-relaxed">
-        新規登録された方は、登録メールアドレス宛に届いた確認メールのURLを必ずタップしてからログインしてください。
-      </div>
-
       <form action={formAction} className="space-y-5">
         <div className="space-y-2">
           <Label htmlFor="email">メールアドレス</Label>

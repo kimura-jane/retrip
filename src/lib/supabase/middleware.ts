@@ -44,13 +44,14 @@ export async function updateSession(request: NextRequest) {
     "/",
     "/login",
     "/signup",
+    "/signup/confirm",
     "/auth/callback",
     "/about",
     "/terms",
     "/privacy",
   ];
 
-  const publicPrefixes = ["/tours"];
+  const publicPrefixes = ["/tours", "/signup"];
 
   const isPublic =
     publicPaths.includes(pathname) ||

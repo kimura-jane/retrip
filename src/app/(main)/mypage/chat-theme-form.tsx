@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateChatThemeAction } from "@/features/user/actions";
+import { updateChatThemeAction } from "@/features/chat/theme-actions";
 import type { ChatThemeColor, ChatFont } from "@/types/database";
 
 type Props = {
@@ -29,11 +29,17 @@ export function ChatThemeForm({ initialColor, initialFont }: Props) {
   const [font, setFont] = useState<ChatFont>(initialFont);
   const [isPending, startTransition] = useTransition();
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSave = () => {
+    setError(null);
     startTransition(async () => {
-      await updateChatThemeAction({ chat_theme_color: color, chat_font: font });
-      setSavedAt(Date.now());
+      const result = await updateChatThemeAction(color, font);
+      if (result.success) {
+        setSavedAt(Date.now());
+      } else {
+        setError(result.error);
+      }
     });
   };
 
@@ -120,8 +126,11 @@ export function ChatThemeForm({ initialColor, initialFont }: Props) {
         >
           {isPending ? "Saving..." : "Save"}
         </button>
-        {savedAt && !isPending && (
+        {savedAt && !isPending && !error && (
           <span className="text-xs text-ink-500 font-light">保存しました</span>
+        )}
+        {error && (
+          <span className="text-xs text-coral-700 font-light">{error}</span>
         )}
       </div>
     </div>

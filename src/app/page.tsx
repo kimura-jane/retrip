@@ -13,7 +13,7 @@ export default function LandingPage() {
             Re:Trip
           </Link>
           <nav className="flex items-center gap-3">
-            <Button asChild variant="ghost" size="sm">
+            <Button asChild size="sm" className="bg-brand-200 text-brand-800 hover:bg-brand-300">
               <Link href="/login">ログイン</Link>
             </Button>
             <Button asChild size="sm" className="bg-brand-400 text-white hover:bg-brand-600">
@@ -64,8 +64,7 @@ export default function LandingPage() {
             <Button
               asChild
               size="lg"
-              variant="outline"
-              className="border-brand-400 px-8 text-brand-700 hover:bg-brand-50"
+              className="bg-brand-200 px-8 text-brand-800 hover:bg-brand-300"
             >
               <Link href="/login">ログイン</Link>
             </Button>
@@ -232,8 +231,7 @@ export default function LandingPage() {
             <Button
               asChild
               size="lg"
-              variant="outline"
-              className="border-brand-400 px-12 text-brand-700 hover:bg-brand-50"
+              className="bg-brand-200 px-12 text-brand-800 hover:bg-brand-300"
             >
               <Link href="/login">ログイン</Link>
             </Button>

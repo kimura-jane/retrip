@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ChatThemeColor, ChatFont } from "@/types/database";
 
-const ALLOWED_COLORS: ChatThemeColor[] = ["green", "blue", "pink", "purple", "orange"];
-const ALLOWED_FONTS: ChatFont[] = ["sans", "serif", "rounded", "mincho", "pop"];
+const ALLOWED_COLORS: ChatThemeColor[] = ["coral", "sage", "ink", "paper", "sora"];
+const ALLOWED_FONTS: ChatFont[] = ["sans", "serif", "display", "rounded"];
 
 export async function updateChatThemeAction(
   color: string,

@@ -1,63 +1,58 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: ["class"],
   content: [
-    "./src/pages/**/*.{ts,tsx}",
-    "./src/components/**/*.{ts,tsx}",
-    "./src/app/**/*.{ts,tsx}",
-    "./src/features/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
   ],
   theme: {
-    container: { center: true, padding: "1rem", screens: { "2xl": "1280px" } },
     extend: {
       colors: {
-        brand: {
-          50: "#F5FAEB",
-          100: "#E8F3D1",
-          200: "#D4E8A8",
-          300: "#BCDC78",
-          400: "#A8D547",
-          500: "#8FC22E",
-          600: "#7AB52C",
-          700: "#5E8E22",
-          800: "#456A1A",
-          900: "#2E4811",
+        paper: {
+          DEFAULT: "#F7F4EE",
+          50: "#FBF9F4",
+          100: "#F7F4EE",
+          200: "#EFEAE0",
+          300: "#E5E0D8",
         },
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
-        secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
-        destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
-        muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
-        accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
-        card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
-        popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
+        ink: {
+          DEFAULT: "#2A2826",
+          500: "#8A8580",
+          600: "#5A554F",
+          900: "#2A2826",
+        },
+        coral: {
+          DEFAULT: "#C8856B",
+          50: "#FBF3EE",
+          100: "#F2DDD0",
+          300: "#DCA88E",
+          500: "#C8856B",
+          700: "#A66A52",
+          900: "#7A4B39",
+        },
+        sage: {
+          DEFAULT: "#6B7A5A",
+          50: "#F1F2EC",
+          100: "#DDE1D2",
+          300: "#A8B196",
+          500: "#6B7A5A",
+          700: "#525E45",
+        },
+        line: "#E5E0D8",
       },
       fontFamily: {
-        sans: ["var(--font-noto-sans-jp)", "sans-serif"],
         serif: ["var(--font-noto-serif-jp)", "serif"],
-        rounded: ["var(--font-zen-maru-gothic)", "var(--font-noto-sans-jp)", "sans-serif"],
-        mincho: ["var(--font-shippori-mincho)", "var(--font-noto-serif-jp)", "serif"],
-        pop: ["var(--font-yusei-magic)", "var(--font-noto-sans-jp)", "sans-serif"],
+        sans: ["var(--font-noto-sans-jp)", "sans-serif"],
+        display: ["var(--font-cormorant)", "serif"],
       },
-      borderRadius: { lg: "var(--radius)", md: "calc(var(--radius) - 2px)", sm: "calc(var(--radius) - 4px)" },
-      keyframes: {
-        "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
-        "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
-        "fade-in": { from: { opacity: "0", transform: "translateY(10px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+      letterSpacing: {
+        widest2: "0.3em",
       },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.6s ease-out",
+      lineHeight: {
+        loose2: "2.0",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [],
 };
 
 export default config;

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { signOutAction } from "@/features/auth/actions";
 import { Button } from "@/components/ui/button";
 
 export async function Header() {
@@ -40,14 +39,6 @@ export async function Header() {
               >
                 マイページ
               </Link>
-              <form action={signOutAction}>
-                <button
-                  type="submit"
-                  className="text-sm text-neutral-500 hover:text-neutral-800 transition"
-                >
-                  ログアウト
-                </button>
-              </form>
             </>
           ) : (
             <>

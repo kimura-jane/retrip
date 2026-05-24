@@ -44,9 +44,9 @@ export type ChatMemberRole = "member" | "admin";
 
 export type MediaType = "image" | "video" | "gif";
 
-export type ChatThemeColor = "green" | "blue" | "pink" | "purple" | "orange";
+export type ChatThemeColor = "coral" | "sage" | "ink" | "paper" | "sora";
 
-export type ChatFont = "sans" | "serif" | "rounded" | "mincho" | "pop";
+export type ChatFont = "sans" | "serif" | "display" | "rounded";
 
 // ===========================================
 // 集合場所（meeting_points jsonb の構造）

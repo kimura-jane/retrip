@@ -1,99 +1,73 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateChatThemeAction } from "@/features/chat/theme-actions";
-import { CHAT_THEMES, CHAT_FONTS } from "@/features/chat/theme";
+import { updateChatThemeAction } from "@/features/user/actions";
 import type { ChatThemeColor, ChatFont } from "@/types/database";
-import { Button } from "@/components/ui/button";
 
 type Props = {
   initialColor: ChatThemeColor;
   initialFont: ChatFont;
 };
 
-const COLOR_LABELS: Record<ChatThemeColor, string> = {
-  green: "グリーン",
-  blue: "ブルー",
-  pink: "ピンク",
-  purple: "パープル",
-  orange: "オレンジ",
-};
+const COLORS: { value: ChatThemeColor; label: string; swatch: string }[] = [
+  { value: "coral", label: "Coral", swatch: "#C8856B" },
+  { value: "sage", label: "Sage", swatch: "#6B7A5A" },
+  { value: "ink", label: "Ink", swatch: "#2A2826" },
+  { value: "paper", label: "Paper", swatch: "#F7F4EE" },
+  { value: "sora", label: "Sora", swatch: "#8FA3B5" },
+];
 
-// プレビュー用の生カラー（Tailwind の bg-* クラスと対応）
-const COLOR_SWATCH: Record<ChatThemeColor, string> = {
-  green: "#7BA05B",
-  blue: "#0EA5E9",
-  pink: "#F472B6",
-  purple: "#A855F7",
-  orange: "#FB923C",
-};
+const FONTS: { value: ChatFont; label: string; className: string }[] = [
+  { value: "sans", label: "Sans", className: "font-sans" },
+  { value: "serif", label: "Serif", className: "font-serif" },
+  { value: "display", label: "Display", className: "font-display italic" },
+  { value: "rounded", label: "Rounded", className: "font-sans" },
+];
 
 export function ChatThemeForm({ initialColor, initialFont }: Props) {
   const [color, setColor] = useState<ChatThemeColor>(initialColor);
   const [font, setFont] = useState<ChatFont>(initialFont);
   const [isPending, startTransition] = useTransition();
-  const [message, setMessage] = useState<string | null>(null);
-
-  const dirty = color !== initialColor || font !== initialFont;
+  const [savedAt, setSavedAt] = useState<number | null>(null);
 
   const handleSave = () => {
-    setMessage(null);
     startTransition(async () => {
-      const result = await updateChatThemeAction(color, font);
-      if (result.success) {
-        setMessage("保存しました");
-      } else {
-        setMessage(result.error);
-      }
+      await updateChatThemeAction({ chat_theme_color: color, chat_font: font });
+      setSavedAt(Date.now());
     });
   };
 
-  const theme = CHAT_THEMES[color];
-  const fontDef = CHAT_FONTS[font];
-
   return (
-    <div className="space-y-6">
-      {/* プレビュー */}
+    <div className="space-y-10">
+      {/* カラー */}
       <div>
-        <p className="text-xs text-neutral-500 mb-2">プレビュー</p>
-        <div className={`rounded-lg p-4 ${theme.chatBg} ${fontDef.className}`}>
-          <div className="flex justify-end mb-2">
-            <div className={`px-3 py-2 rounded-2xl text-sm max-w-[70%] ${theme.myBubbleBg} ${theme.myBubbleText}`}>
-              これは私のメッセージです
-            </div>
-          </div>
-          <div className="flex justify-start">
-            <div className="px-3 py-2 rounded-2xl text-sm max-w-[70%] bg-white text-neutral-800 border border-neutral-200">
-              これは相手のメッセージです
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* カラー選択 */}
-      <div>
-        <p className="text-sm font-medium text-neutral-700 mb-3">テーマカラー</p>
-        <div className="grid grid-cols-5 gap-2">
-          {(Object.keys(CHAT_THEMES) as ChatThemeColor[]).map((c) => {
-            const selected = c === color;
+        <p className="font-display italic uppercase tracking-widest2 text-[10px] text-ink-500 mb-4">
+          Color
+        </p>
+        <div className="flex flex-wrap gap-4">
+          {COLORS.map((c) => {
+            const selected = color === c.value;
             return (
               <button
-                key={c}
+                key={c.value}
                 type="button"
-                onClick={() => setColor(c)}
-                className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition ${
-                  selected
-                    ? "border-neutral-800 bg-neutral-50"
-                    : "border-neutral-200 hover:border-neutral-400"
-                }`}
-                aria-pressed={selected}
+                onClick={() => setColor(c.value)}
+                className="flex flex-col items-center gap-2 group"
               >
                 <span
-                  className="w-8 h-8 rounded-full"
-                  style={{ backgroundColor: COLOR_SWATCH[c] }}
+                  className={`block h-8 w-8 transition-all ${
+                    selected
+                      ? "ring-2 ring-offset-4 ring-offset-paper-100 ring-ink-900"
+                      : "ring-1 ring-[#E5E0D8] group-hover:ring-ink-500"
+                  }`}
+                  style={{ backgroundColor: c.swatch }}
                 />
-                <span className="text-[10px] text-neutral-600">
-                  {COLOR_LABELS[c]}
+                <span
+                  className={`text-[10px] font-display italic uppercase tracking-widest2 ${
+                    selected ? "text-ink-900" : "text-ink-500"
+                  }`}
+                >
+                  {c.label}
                 </span>
               </button>
             );
@@ -101,47 +75,53 @@ export function ChatThemeForm({ initialColor, initialFont }: Props) {
         </div>
       </div>
 
-      {/* フォント選択 */}
+      {/* フォント */}
       <div>
-        <p className="text-sm font-medium text-neutral-700 mb-3">フォント</p>
+        <p className="font-display italic uppercase tracking-widest2 text-[10px] text-ink-500 mb-4">
+          Font
+        </p>
         <div className="space-y-2">
-          {(Object.keys(CHAT_FONTS) as ChatFont[]).map((f) => {
-            const selected = f === font;
-            const def = CHAT_FONTS[f];
+          {FONTS.map((f) => {
+            const selected = font === f.value;
             return (
               <button
-                key={f}
+                key={f.value}
                 type="button"
-                onClick={() => setFont(f)}
-                className={`w-full flex items-center justify-between p-3 rounded-lg border transition ${
+                onClick={() => setFont(f.value)}
+                className={`block w-full text-left px-5 py-4 border transition-colors ${
                   selected
-                    ? "border-neutral-800 bg-neutral-50"
-                    : "border-neutral-200 hover:border-neutral-400"
-                } ${def.className}`}
-                aria-pressed={selected}
+                    ? "border-ink-900 bg-paper-50"
+                    : "border-[#E5E0D8] hover:border-ink-500"
+                }`}
               >
-                <span className="text-sm text-neutral-800">{def.label}</span>
-                <span className="text-xs text-neutral-500">
-                  あいうえお Abc 123
-                </span>
+                <p
+                  className={`text-[10px] font-display italic uppercase tracking-widest2 mb-1.5 ${
+                    selected ? "text-coral-700" : "text-ink-500"
+                  }`}
+                >
+                  {f.label}
+                </p>
+                <p className={`${f.className} text-lg text-ink-900`}>
+                  あいうえお Re:Trip
+                </p>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* 保存ボタン */}
-      <div className="flex items-center gap-3">
-        <Button
+      {/* 保存 */}
+      <div className="flex items-center gap-4 pt-2">
+        <button
           type="button"
           onClick={handleSave}
-          disabled={!dirty || isPending}
-          size="sm"
+          disabled={isPending}
+          className="border border-coral-500 text-coral-700 hover:bg-coral-500 hover:text-paper-50 transition-colors px-6 py-2.5 text-xs font-display italic uppercase tracking-widest2 disabled:opacity-50"
         >
-          {isPending ? "保存中..." : "保存する"}
-        </Button>
-        {message && (
-          <span className="text-xs text-neutral-600">{message}</span>
+          {isPending ? "Saving..." : "Save"}
+        </button>
+        {savedAt && !isPending && (
+          <span className="text-xs text-ink-500 font-light">保存しました</span>
         )}
       </div>
     </div>

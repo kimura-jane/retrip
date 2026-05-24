@@ -10,13 +10,13 @@ export default async function TourDetailPage({ params }: { params: Params }) {
   const { tourId } = await params;
 
   const supabase = await createClient();
-  const { data: tour, error } = await supabase
+  const { data: tour } = await supabase
     .from("tours")
     .select("*")
     .eq("id", tourId)
     .maybeSingle();
 
-  if (error || !tour) {
+  if (!tour) {
     notFound();
   }
 

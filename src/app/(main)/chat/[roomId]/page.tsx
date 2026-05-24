@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ChatRoomView } from "./chat-room-view";
+import type { ChatThemeColor, ChatFont } from "@/types/database";
 
 type RoomRow = {
   id: string;
@@ -40,6 +41,29 @@ type UserPrefsRow = {
   chat_font: string | null;
 };
 
+// 旧パレット → 新パレット の安全側マッピング（DB に旧値が残っていた場合の保険）
+const COLOR_MAP: Record<string, ChatThemeColor> = {
+  coral: "coral",
+  sage: "sage",
+  ink: "ink",
+  paper: "paper",
+  sora: "sora",
+  green: "sage",
+  blue: "sora",
+  pink: "coral",
+  purple: "sage",
+  orange: "coral",
+};
+
+const FONT_MAP: Record<string, ChatFont> = {
+  sans: "sans",
+  serif: "serif",
+  display: "display",
+  rounded: "rounded",
+  mincho: "serif",
+  pop: "sans",
+};
+
 export default async function ChatRoomPage({
   params,
 }: {
@@ -55,7 +79,6 @@ export default async function ChatRoomPage({
     redirect("/login");
   }
 
-  // ルーム情報
   const { data: room } = await supabase
     .from("chat_rooms")
     .select("id,name,description,room_type,requires_verification")
@@ -65,7 +88,6 @@ export default async function ChatRoomPage({
     notFound();
   }
 
-  // メッセージ（最新100件）
   const { data: messagesData } = await supabase
     .from("messages")
     .select(
@@ -76,11 +98,8 @@ export default async function ChatRoomPage({
     .limit(100);
 
   const messages: MessageRow[] = (messagesData as MessageRow[] | null) ?? [];
-
-  // メッセージIDリスト
   const messageIds = messages.map((m) => m.id);
 
-  // リアクション一括取得
   let reactions: ReactionRow[] = [];
   if (messageIds.length > 0) {
     const { data: reactionsData } = await supabase
@@ -90,7 +109,6 @@ export default async function ChatRoomPage({
     reactions = (reactionsData as ReactionRow[] | null) ?? [];
   }
 
-  // 送信者IDリスト（メッセージ + リアクション）
   const userIds = Array.from(
     new Set([
       ...messages.map((m) => m.user_id),
@@ -98,7 +116,6 @@ export default async function ChatRoomPage({
     ])
   );
 
-  // 送信者情報を一括取得
   const senders: Record<string, { display_name: string; avatar_url: string | null }> = {};
   if (userIds.length > 0) {
     const { data: sendersData } = await supabase
@@ -113,25 +130,16 @@ export default async function ChatRoomPage({
     }
   }
 
-  // 現在ユーザーのテーマ設定取得
   const { data: prefsData } = await supabase
     .from("users")
     .select("chat_theme_color,chat_font")
     .eq("id", user.id)
     .maybeSingle<UserPrefsRow>();
 
-  const themeColor = (prefsData?.chat_theme_color ?? "green") as
-    | "green"
-    | "blue"
-    | "pink"
-    | "purple"
-    | "orange";
-  const chatFont = (prefsData?.chat_font ?? "sans") as
-    | "sans"
-    | "serif"
-    | "rounded"
-    | "mincho"
-    | "pop";
+  const rawColor = prefsData?.chat_theme_color ?? "coral";
+  const rawFont = prefsData?.chat_font ?? "sans";
+  const themeColor: ChatThemeColor = COLOR_MAP[rawColor] ?? "coral";
+  const chatFont: ChatFont = FONT_MAP[rawFont] ?? "sans";
 
   return (
     <ChatRoomView

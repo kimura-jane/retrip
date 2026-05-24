@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { signOutAction } from "@/features/auth/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -200,6 +201,19 @@ export default async function MyPage() {
             initialColor={profile?.chat_theme_color ?? "green"}
             initialFont={profile?.chat_font ?? "sans"}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">アカウント</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form action={signOutAction}>
+            <Button type="submit" variant="outline" size="sm">
+              ログアウト
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

@@ -18,6 +18,7 @@ type UsersUpdatePayload = {
   id_document_url?: string | null;
   id_rejected_at?: string | null;
   id_rejection_reason?: string | null;
+  avatar_url?: string | null;
 };
 
 export async function updateProfileAction(
@@ -127,4 +128,82 @@ export async function uploadIdDocumentAction(
 
   revalidatePath("/mypage");
   return { success: true, message: "本人確認書類を送信しました。承認をお待ちください。" };
+}
+
+export async function uploadAvatarAction(
+  _prevState: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, error: "ログインが必要です" };
+  }
+
+  const file = formData.get("avatar");
+  if (!(file instanceof File) || file.size === 0) {
+    return { success: false, error: "画像を選択してください" };
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    return { success: false, error: "ファイルサイズは5MB以下にしてください" };
+  }
+
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+  if (!allowedTypes.includes(file.type)) {
+    return { success: false, error: "JPEG, PNG, WebP, HEIC形式の画像をアップロードしてください" };
+  }
+
+  // 旧アバター画像のパスを取得（あとで削除するため）
+  const { data: currentData } = await supabase
+    .from("users")
+    .select("avatar_url")
+    .eq("id", user.id)
+    .maybeSingle();
+  const currentAvatarUrl = (currentData as { avatar_url: string | null } | null)?.avatar_url ?? null;
+
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+  const path = `${user.id}/${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (uploadError) {
+    return { success: false, error: `アップロードに失敗しました: ${uploadError.message}` };
+  }
+
+  // 公開URLを生成（avatars バケットは public）
+  const { data: publicUrlData } = supabase.storage
+    .from("avatars")
+    .getPublicUrl(path);
+  const publicUrl = publicUrlData.publicUrl;
+
+  const { error: updateError } = await supabase
+    .from("users")
+    .update({ avatar_url: publicUrl } as never)
+    .eq("id", user.id);
+
+  if (updateError) {
+    return { success: false, error: updateError.message };
+  }
+
+  // 旧画像の削除（失敗しても無視）
+  if (currentAvatarUrl) {
+    const match = currentAvatarUrl.match(/\/avatars\/(.+?)(?:\?|$)/);
+    const oldPath = match ? match[1] : null;
+    if (oldPath) {
+      await supabase.storage.from("avatars").remove([oldPath]);
+    }
+  }
+
+  revalidatePath("/mypage");
+  revalidatePath("/mypage/edit");
+  return { success: true, message: "アイコンを更新しました" };
 }

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { profileUpdateSchema } from "./schema";
-import type { Gender, ChatThemeColor, ChatFont } from "@/types/database";
+import type { Gender } from "@/types/database";
 
 export type ActionResult =
   | { success: true; message?: string }
@@ -206,42 +206,4 @@ export async function uploadAvatarAction(
   revalidatePath("/mypage");
   revalidatePath("/mypage/edit");
   return { success: true, message: "アイコンを更新しました" };
-}
-
-const VALID_COLORS: ChatThemeColor[] = ["coral", "sage", "ink", "paper", "sora"];
-const VALID_FONTS: ChatFont[] = ["sans", "serif", "display", "rounded"];
-
-export async function updateChatThemeAction(input: {
-  chat_theme_color: ChatThemeColor;
-  chat_font: ChatFont;
-}): Promise<ActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return { success: false, error: "ログインが必要です" };
-  }
-
-  if (!VALID_COLORS.includes(input.chat_theme_color)) {
-    return { success: false, error: "無効なカラーです" };
-  }
-  if (!VALID_FONTS.includes(input.chat_font)) {
-    return { success: false, error: "無効なフォントです" };
-  }
-
-  const { error } = await supabase
-    .from("users")
-    .update({
-      chat_theme_color: input.chat_theme_color,
-      chat_font: input.chat_font,
-    } as never)
-    .eq("id", user.id);
-
-  if (error) {
-    return { success: false, error: error.message };
-  }
-
-  revalidatePath("/mypage");
-  return { success: true, message: "保存しました" };
 }

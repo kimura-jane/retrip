@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 type RoomRow = {
   id: string;
@@ -42,84 +40,91 @@ export default async function ChatListPage() {
   const verifiedRooms = rooms.filter((r) => r.requires_verification);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="font-serif text-3xl text-neutral-800">チャット</h1>
-        <p className="text-sm text-neutral-600 mt-2">
-          他の旅人たちと自由におしゃべりしましょう
+    <div className="mx-auto max-w-2xl px-6 py-16">
+      {/* ページヘッダー */}
+      <header className="mb-16">
+        <p className="font-display italic uppercase tracking-widest2 text-xs text-coral-700">
+          Lounges
         </p>
-      </div>
+        <h1 className="font-serif text-4xl text-ink-900 mt-3 leading-loose2">
+          チャット
+        </h1>
+        <div className="mt-6 h-px w-12 bg-coral-500" />
+        <p className="mt-6 text-[13px] text-ink-500 font-light tracking-wide leading-loose">
+          他の旅人たちと、自由におしゃべりしましょう。
+        </p>
+      </header>
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium text-neutral-700 tracking-wider">
-          みんなの広場
-        </h2>
-        <div className="space-y-2">
+      {/* みんなの広場 */}
+      <section className="mb-16">
+        <p className="font-display italic uppercase tracking-widest2 text-[11px] text-coral-700 mb-8">
+          For everyone
+        </p>
+        <ul className="divide-y divide-[#E5E0D8] border-y border-[#E5E0D8]">
           {publicRooms.map((room) => (
-            <Link key={room.id} href={`/chat/${room.id}`}>
-              <Card className="hover:bg-neutral-50 transition cursor-pointer">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-neutral-800">{room.name}</p>
-                      {room.description && (
-                        <p className="text-xs text-neutral-500 mt-1">
-                          {room.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            <li key={room.id}>
+              <Link
+                href={`/chat/${room.id}`}
+                className="flex items-center justify-between py-5 group"
+              >
+                <span className="font-serif text-lg text-ink-900 group-hover:text-coral-700 transition-colors">
+                  {room.name}
+                </span>
+                <span className="font-display italic text-xs text-ink-500 group-hover:text-coral-700 transition-colors">
+                  enter →
+                </span>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       </section>
 
+      <div className="h-px w-full bg-[#E5E0D8] mb-16" />
+
+      {/* 本人確認済みエリア */}
       {isVerified ? (
-        <section className="space-y-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-medium text-neutral-700 tracking-wider">
-              本人確認済みエリア
-            </h2>
-            <Badge variant="default" className="text-[10px]">認証済み</Badge>
+        <section>
+          <div className="flex items-center justify-between mb-8">
+            <p className="font-display italic uppercase tracking-widest2 text-[11px] text-coral-700">
+              Verified only
+            </p>
+            <span className="flex items-center gap-2 text-xs text-ink-500 font-light">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-sage-500" />
+              認証済み
+            </span>
           </div>
-          <div className="space-y-2">
+          <ul className="divide-y divide-[#E5E0D8] border-y border-[#E5E0D8]">
             {verifiedRooms.map((room) => (
-              <Link key={room.id} href={`/chat/${room.id}`}>
-                <Card className="hover:bg-neutral-50 transition cursor-pointer border-brand-500/30">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-neutral-800">{room.name}</p>
-                        {room.description && (
-                          <p className="text-xs text-neutral-500 mt-1">
-                            {room.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+              <li key={room.id}>
+                <Link
+                  href={`/chat/${room.id}`}
+                  className="flex items-center justify-between py-5 group"
+                >
+                  <span className="font-serif text-lg text-ink-900 group-hover:text-coral-700 transition-colors">
+                    {room.name}
+                  </span>
+                  <span className="font-display italic text-xs text-ink-500 group-hover:text-coral-700 transition-colors">
+                    enter →
+                  </span>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       ) : (
-        <section className="space-y-3">
-          <div className="rounded-lg bg-neutral-50 border border-neutral-200 p-5 text-sm text-neutral-600 leading-relaxed">
-            <p className="font-medium text-neutral-800 mb-2">
-              🔒 本人確認済みエリアもあります
-            </p>
-            <p>
-              本人確認を済ませると、「希望の目的地板」「感想板」など、
-              ツアー参加者だけの板にも参加できるようになります。
+        <section>
+          <p className="font-display italic uppercase tracking-widest2 text-[11px] text-coral-700 mb-8">
+            Verified only
+          </p>
+          <div className="border-l-2 border-coral-500 pl-5 py-2 space-y-4">
+            <p className="text-sm text-ink-900 font-light leading-loose">
+              本人確認を済ませると、「希望の目的地チャット」「感想チャット」など、ツアー参加者だけのチャットにも参加できるようになります。
             </p>
             <Link
               href="/mypage/id-upload"
-              className="inline-block mt-3 text-brand-600 hover:underline text-sm"
+              className="inline-block border border-coral-500 text-coral-700 hover:bg-coral-500 hover:text-paper-50 transition-colors px-6 py-2.5 text-xs font-display italic uppercase tracking-widest2"
             >
-              本人確認書類を提出する →
+              Submit document
             </Link>
           </div>
         </section>

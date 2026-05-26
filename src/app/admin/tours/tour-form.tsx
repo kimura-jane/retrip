@@ -35,7 +35,7 @@ const EMPTY_INITIAL: TourInput = {
   departure_date: "",
   return_date: "",
   meeting_points: [
-    { id: crypto.randomUUID?.() ?? "mp1", name: "", time: "", note: "" },
+    { id: "mp1", name: "", time: "", note: "" },
   ],
   price: 0,
   capacity_total: 6,
@@ -65,6 +65,14 @@ function localToIso(local: string): string {
   return d.toISOString();
 }
 
+// ランダム ID（meeting_point 用）
+function genId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `mp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 // ============================================
 // 本体
 // ============================================
@@ -91,8 +99,9 @@ export function TourForm({ mode, tourId, initial }: Props) {
     value: string
   ) => {
     setForm((prev) => {
-      const next = [...prev.meeting_points];
-      next[index] = { ...next[index], [key]: value };
+      const next = prev.meeting_points.map((mp, i) =>
+        i === index ? { ...mp, [key]: value } : mp
+      );
       return { ...prev, meeting_points: next };
     });
   };
@@ -103,8 +112,7 @@ export function TourForm({ mode, tourId, initial }: Props) {
       meeting_points: [
         ...prev.meeting_points,
         {
-          id:
-            crypto.randomUUID?.() ?? `mp${prev.meeting_points.length + 1}`,
+          id: genId(),
           name: "",
           time: "",
           note: "",

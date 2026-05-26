@@ -108,14 +108,11 @@ export function ChatRoomView({
     const vv = window.visualViewport;
 
     const updateView = () => {
-      // 実際の表示領域の高さを取得
       setViewportHeight(vv.height);
-      // OSによって画面が上に押し上げられたズレ幅を取得
       setViewportTop(vv.offsetTop);
     };
 
     updateView();
-    // resize（キーボード開閉）と scroll（iOSによる強制スクロール）の両方を検知
     vv.addEventListener("resize", updateView);
     vv.addEventListener("scroll", updateView);
 
@@ -335,7 +332,6 @@ export function ChatRoomView({
   };
 
   return (
-    // iOSが上にスクロールしたズレ（viewportTop）分だけ、topを押し下げて画面内に留める
     <div
       className={`fixed left-0 w-full flex flex-col overflow-hidden ${theme.chatBg} ${font.className}`}
       style={{
@@ -344,24 +340,25 @@ export function ChatRoomView({
       }}
     >
       {/* ヘッダー */}
-      <div className="flex-shrink-0 bg-white border-b border-neutral-200 px-4 py-3 z-10">
+      <div className="flex-shrink-0 bg-paper-100 border-b border-[#E5E0D8] px-5 py-4 z-10">
         <Link
           href="/chat"
-          className="text-xs text-neutral-500 hover:text-neutral-800"
+          className="font-display italic uppercase tracking-widest2 text-[10px] text-ink-500 hover:text-coral-700 transition-colors"
         >
-          ← チャット一覧
+          ← Lounges
         </Link>
-        <h1 className="font-serif text-xl text-neutral-800 mt-1">{roomName}</h1>
-        {roomDescription && (
-          <p className="text-xs text-neutral-500 mt-0.5">{roomDescription}</p>
-        )}
+        <h1 className="font-serif text-xl text-ink-900 mt-1.5 tracking-wide">
+          {roomName}
+        </h1>
       </div>
 
       {/* メッセージリスト */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 overscroll-contain">
         {messages.length === 0 ? (
-          <p className="text-center text-sm text-neutral-400 mt-8">
-            まだメッセージはありません。最初の投稿をしてみよう
+          <p className="text-center text-xs text-ink-500 font-light mt-12 tracking-wide leading-loose">
+            まだメッセージはありません。
+            <br />
+            最初の投稿をしてみよう。
           </p>
         ) : (
           messages.map((msg, idx) => {
@@ -403,22 +400,20 @@ export function ChatRoomView({
             );
           })
         )}
-        {/* スクロールのためのダミー要素 */}
         <div ref={bottomRef} className="h-2" />
       </div>
 
       {/* 入力欄エリア */}
-      {/* iOSホームバー用の pb-safe 以外、無駄な余白(pb-5等)を削除 */}
-      <div className="flex-shrink-0 bg-white border-t border-neutral-200 z-10 relative pb-safe">
+      <div className="flex-shrink-0 bg-paper-100 border-t border-[#E5E0D8] z-10 relative pb-safe">
         {/* 返信プレビュー */}
         {replyTo && (
-          <div className="bg-neutral-100 border-b border-neutral-200 px-3 py-2 flex items-start gap-2">
-            <div className={`w-1 self-stretch rounded-full ${theme.accentBorder}`} />
+          <div className="bg-paper-50 border-b border-[#E5E0D8] px-3 py-2 flex items-start gap-2">
+            <div className={`w-0.5 self-stretch ${theme.accentBorder}`} />
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] text-neutral-500">
-                {senders[replyTo.user_id]?.display_name ?? "ユーザー"} に返信
+              <p className="font-display italic uppercase tracking-widest2 text-[10px] text-ink-500">
+                Reply to {senders[replyTo.user_id]?.display_name ?? "ユーザー"}
               </p>
-              <p className="text-xs text-neutral-700 truncate">
+              <p className="text-xs text-ink-900 font-light truncate mt-0.5">
                 {replyTo.deleted_at
                   ? "（削除されたメッセージ）"
                   : replyTo.content || (replyTo.media_type ? "[メディア]" : "")}
@@ -427,7 +422,7 @@ export function ChatRoomView({
             <button
               type="button"
               onClick={() => setReplyTo(null)}
-              className="text-neutral-400 hover:text-neutral-700 text-lg leading-none px-1"
+              className="text-ink-500 hover:text-ink-900 text-lg leading-none px-1 transition-colors"
               aria-label="返信キャンセル"
             >
               ×
@@ -437,15 +432,17 @@ export function ChatRoomView({
 
         {/* 編集プレビュー */}
         {editingId && (
-          <div className="bg-amber-50 border-b border-amber-200 px-3 py-2 flex items-center justify-between">
-            <p className="text-xs text-amber-800">メッセージを編集中</p>
+          <div className="bg-coral-500/10 border-b border-coral-500/40 px-3 py-2 flex items-center justify-between">
+            <p className="font-display italic uppercase tracking-widest2 text-[10px] text-coral-700">
+              Editing message
+            </p>
             <button
               type="button"
               onClick={() => {
                 setEditingId(null);
                 setInput("");
               }}
-              className="text-amber-700 hover:text-amber-900 text-xs"
+              className="text-coral-700 hover:text-coral-500 text-xs font-light transition-colors"
             >
               キャンセル
             </button>
@@ -454,7 +451,7 @@ export function ChatRoomView({
 
         {/* メディアプレビュー */}
         {uploadPreview && (
-          <div className="bg-neutral-100 border-b border-neutral-200 px-3 py-2">
+          <div className="bg-paper-50 border-b border-[#E5E0D8] px-3 py-2">
             <div className="relative inline-block">
               {uploadPreview.mediaType === "video" ? (
                 <video
@@ -472,7 +469,7 @@ export function ChatRoomView({
               <button
                 type="button"
                 onClick={() => setUploadPreview(null)}
-                className="absolute -top-2 -right-2 bg-neutral-800 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                className="absolute -top-2 -right-2 bg-ink-900 text-paper-50 rounded-full w-6 h-6 flex items-center justify-center text-xs"
                 aria-label="削除"
               >
                 ×
@@ -481,9 +478,11 @@ export function ChatRoomView({
           </div>
         )}
 
-        {/* 入力フォーム本体（余白は最小限に） */}
+        {/* 入力フォーム本体 */}
         <div className="px-3 py-2">
-          {error && <p className="text-xs text-red-600 mb-2 px-1">{error}</p>}
+          {error && (
+            <p className="text-xs text-coral-700 font-light mb-2 px-1">{error}</p>
+          )}
           <div className="flex items-end gap-2">
             {!editingId && (
               <>
@@ -498,11 +497,11 @@ export function ChatRoomView({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading || isPending}
-                  className="flex-shrink-0 h-10 w-10 rounded-full bg-neutral-100 hover:bg-neutral-200 transition flex items-center justify-center disabled:opacity-40"
+                  className="flex-shrink-0 h-10 w-10 rounded-full bg-paper-50 hover:bg-[#E5E0D8] transition-colors flex items-center justify-center disabled:opacity-40 border border-[#E5E0D8]"
                   aria-label="メディアを添付"
                 >
                   {isUploading ? (
-                    <span className="text-xs">…</span>
+                    <span className="text-xs text-ink-500">…</span>
                   ) : (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -510,7 +509,7 @@ export function ChatRoomView({
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2"
-                      className="w-5 h-5 text-neutral-600"
+                      className="w-5 h-5 text-ink-500"
                     >
                       <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
                     </svg>
@@ -525,7 +524,7 @@ export function ChatRoomView({
               onKeyDown={handleKeyDown}
               placeholder={editingId ? "編集内容を入力" : "メッセージを入力"}
               rows={1}
-              className={`flex-1 resize-none rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-base focus:outline-none focus:ring-2 ${theme.focusRing} max-h-32`}
+              className={`flex-1 resize-none rounded-2xl border border-[#E5E0D8] bg-paper-50 px-4 py-2 text-base text-ink-900 placeholder:text-ink-500/60 focus:outline-none focus:ring-2 ${theme.focusRing} max-h-32 transition-colors`}
               style={{ minHeight: "40px", fontSize: "16px" }}
             />
             <button
@@ -632,7 +631,7 @@ function MessageBubble({
   const avatar = (
     <div className="flex-shrink-0 w-8">
       {showSender && (
-        <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-xs text-neutral-600 overflow-hidden">
+        <div className="w-8 h-8 rounded-full bg-paper-50 border border-[#E5E0D8] flex items-center justify-center text-xs text-ink-500 font-serif overflow-hidden">
           {sender?.avatar_url ? (
             <img
               src={sender.avatar_url}
@@ -648,8 +647,8 @@ function MessageBubble({
   );
 
   const bubbleClass = isMine
-    ? `${isDeleted ? "bg-neutral-200 text-neutral-500 italic" : themeMyBubble} rounded-br-md`
-    : `${isDeleted ? "bg-neutral-200 text-neutral-500 italic" : "bg-white text-neutral-800 border border-neutral-200"} rounded-bl-md`;
+    ? `${isDeleted ? "bg-[#E5E0D8] text-ink-500 italic" : themeMyBubble} rounded-br-md`
+    : `${isDeleted ? "bg-[#E5E0D8] text-ink-500 italic" : "bg-paper-50 text-ink-900 border border-[#E5E0D8]"} rounded-bl-md`;
 
   const bubbleContent = (
     <div
@@ -659,8 +658,8 @@ function MessageBubble({
       onPointerCancel={handlePointerCancel}
       onPointerLeave={handlePointerCancel}
       onContextMenu={handleContextMenu}
-      className={`px-3.5 py-2 rounded-2xl text-sm break-words select-none transition-all ${bubbleClass} ${
-        highlighted ? "ring-2 ring-amber-400 ring-offset-1" : ""
+      className={`px-3.5 py-2 rounded-2xl text-sm break-words select-none transition-all font-light leading-relaxed ${bubbleClass} ${
+        highlighted ? "ring-2 ring-coral-500 ring-offset-1 ring-offset-paper-100" : ""
       }`}
       style={{ touchAction: "manipulation" }}
     >
@@ -669,13 +668,13 @@ function MessageBubble({
           type="button"
           onClick={onReplyClick}
           className={`block w-full text-left mb-1.5 pl-2 border-l-2 ${
-            isMine ? "border-white/60" : "border-neutral-400"
+            isMine ? "border-white/60" : "border-[#E5E0D8]"
           } opacity-80 hover:opacity-100 transition`}
         >
-          <p className={`text-[10px] ${isMine ? "text-white/80" : "text-neutral-500"}`}>
+          <p className={`text-[10px] ${isMine ? "text-white/80" : "text-ink-500"}`}>
             {replyToSender?.display_name ?? "ユーザー"}
           </p>
-          <p className={`text-xs truncate ${isMine ? "text-white/90" : "text-neutral-600"}`}>
+          <p className={`text-xs truncate ${isMine ? "text-white/90" : "text-ink-500"}`}>
             {replyToMsg.deleted_at
               ? "（削除されたメッセージ）"
               : replyToMsg.content || (replyToMsg.media_type ? "[メディア]" : "")}
@@ -710,7 +709,7 @@ function MessageBubble({
           {isEdited && (
             <span
               className={`text-[10px] ml-1 ${
-                isMine ? "opacity-70" : "text-neutral-400"
+                isMine ? "opacity-70" : "text-ink-500"
               }`}
             >
               (編集済み)
@@ -728,10 +727,10 @@ function MessageBubble({
           key={emoji}
           type="button"
           onClick={() => onReactionClick(emoji)}
-          className={`px-1.5 py-0.5 rounded-full text-xs border transition ${
+          className={`px-1.5 py-0.5 rounded-full text-xs border transition-colors ${
             info.mine
-              ? "bg-brand-50 border-brand-300 text-neutral-800"
-              : "bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50"
+              ? "bg-coral-500/10 border-coral-500/40 text-ink-900"
+              : "bg-paper-50 border-[#E5E0D8] text-ink-500 hover:bg-[#E5E0D8]"
           }`}
         >
           <span className="mr-0.5">{emoji}</span>
@@ -746,12 +745,12 @@ function MessageBubble({
       <div className="flex justify-end items-end gap-2 px-1 py-0.5">
         <div className="flex flex-col items-end max-w-[75%]">
           {showSender && (
-            <span className="text-[11px] text-neutral-500 mb-0.5 mr-1">
+            <span className="text-[11px] text-ink-500 font-light mb-0.5 mr-1">
               {sender?.display_name ?? "自分"}
             </span>
           )}
           <div className="flex items-end gap-1.5">
-            <span className="text-[10px] text-neutral-400 mb-1 select-none flex-shrink-0">
+            <span className="text-[10px] text-ink-500/60 mb-1 select-none flex-shrink-0 font-light">
               {time}
             </span>
             {bubbleContent}
@@ -768,13 +767,13 @@ function MessageBubble({
       {avatar}
       <div className="flex flex-col items-start max-w-[75%]">
         {showSender && (
-          <span className="text-[11px] text-neutral-500 mb-0.5 ml-1">
+          <span className="text-[11px] text-ink-500 font-light mb-0.5 ml-1">
             {sender?.display_name ?? "不明なユーザー"}
           </span>
         )}
         <div className="flex items-end gap-1.5">
           {bubbleContent}
-          <span className="text-[10px] text-neutral-400 mb-1 select-none flex-shrink-0">
+          <span className="text-[10px] text-ink-500/60 mb-1 select-none flex-shrink-0 font-light">
             {time}
           </span>
         </div>

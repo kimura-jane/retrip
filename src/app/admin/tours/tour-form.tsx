@@ -400,4 +400,149 @@ export function TourForm({ mode, tourId, initial }: Props) {
               className={inputCls}
             />
           </Field>
-          <Field label="女性
+          <Field label="女性枠">
+            <input
+              type="number"
+              min={0}
+              value={form.capacity_female ?? 0}
+              onChange={(e) =>
+                update("capacity_female", Number(e.target.value))
+              }
+              className={inputCls}
+            />
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="年齢下限">
+            <input
+              type="number"
+              min={0}
+              value={form.age_range_min ?? 0}
+              onChange={(e) =>
+                update("age_range_min", Number(e.target.value))
+              }
+              className={inputCls}
+            />
+          </Field>
+          <Field label="年齢上限">
+            <input
+              type="number"
+              min={0}
+              value={form.age_range_max ?? 0}
+              onChange={(e) =>
+                update("age_range_max", Number(e.target.value))
+              }
+              className={inputCls}
+            />
+          </Field>
+        </div>
+      </section>
+
+      {/* セクション：タグ */}
+      <section className="space-y-5">
+        <SectionTitle
+          eyebrow="Tags"
+          title="テーマタグ"
+          subtitle="カンマ区切りで入力。「サンプル」を含めるとサンプル帯が出ます。"
+        />
+        <Field label="タグ">
+          <input
+            type="text"
+            value={tagsInput}
+            onChange={(e) => setTagsInput(e.target.value)}
+            className={inputCls}
+            placeholder="例：自然, 写真, 温泉"
+          />
+        </Field>
+      </section>
+
+      {/* エラー表示 */}
+      {error && (
+        <div className="border border-coral-300 bg-coral-50 px-4 py-3">
+          <p className="text-[13px] text-coral-700">{error}</p>
+        </div>
+      )}
+
+      {/* submit */}
+      <div className="flex items-center gap-3 pt-6 border-t border-line">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="bg-coral-500 hover:bg-coral-700 text-paper-100 text-[13px] tracking-[0.15em] px-8 py-3 transition disabled:opacity-50"
+        >
+          {isPending
+            ? "保存中..."
+            : mode === "create"
+            ? "作成する"
+            : "保存する"}
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push("/admin/tours")}
+          disabled={isPending}
+          className="text-[12px] tracking-[0.15em] uppercase text-ink-500 hover:text-ink-900 transition"
+        >
+          キャンセル
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// ============================================
+// 小コンポーネント
+// ============================================
+
+const inputCls =
+  "w-full bg-paper-50 border border-line px-3 py-2 text-[14px] text-ink-900 placeholder:text-ink-500 focus:outline-none focus:border-coral-500 transition";
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-[11px] tracking-[0.15em] uppercase text-ink-600 font-light">
+        {label}
+      </label>
+      {children}
+      {hint && (
+        <p className="text-[11px] text-ink-500 font-light leading-relaxed">
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SectionTitle({
+  eyebrow,
+  title,
+  subtitle,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="border-b border-line pb-3">
+      <p className="font-display italic text-[11px] tracking-widest2 uppercase text-coral-700">
+        {eyebrow}
+      </p>
+      <h2 className="mt-1.5 font-serif text-xl tracking-[0.04em] text-ink-900">
+        {title}
+      </h2>
+      {subtitle && (
+        <p className="mt-1.5 text-[12px] text-ink-500 font-light leading-relaxed">
+          {subtitle}
+        </p>
+      )}
+    </div>
+  );
+}

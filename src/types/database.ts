@@ -44,6 +44,8 @@ export type ChatMemberRole = "member" | "admin";
 
 export type MediaType = "image" | "video" | "gif";
 
+export type MessageType = "text" | "poll";
+
 export type ChatThemeColor = "coral" | "sage" | "ink" | "paper" | "sora";
 
 export type ChatFont = "sans" | "serif" | "display" | "rounded";
@@ -59,6 +61,15 @@ export interface MeetingPoint {
   lat?: number;
   lng?: number;
   note?: string;
+}
+
+// ===========================================
+// 投票選択肢（polls.options jsonb の構造）
+// ===========================================
+
+export interface PollOption {
+  id: string;
+  label: string;
 }
 
 // ===========================================
@@ -289,6 +300,8 @@ export interface Database {
           deleted_at: string | null;
           media_url: string | null;
           media_type: MediaType | null;
+          message_type: MessageType;
+          poll_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -302,6 +315,8 @@ export interface Database {
           deleted_at?: string | null;
           media_url?: string | null;
           media_type?: MediaType | null;
+          message_type?: MessageType;
+          poll_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -315,6 +330,8 @@ export interface Database {
           deleted_at?: string | null;
           media_url?: string | null;
           media_type?: MediaType | null;
+          message_type?: MessageType;
+          poll_id?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -459,6 +476,59 @@ export interface Database {
         };
         Relationships: [];
       };
+
+      polls: {
+        Row: {
+          id: string;
+          room_id: string;
+          created_by: string;
+          question: string;
+          options: PollOption[];
+          allow_multiple: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          room_id: string;
+          created_by: string;
+          question: string;
+          options: PollOption[];
+          allow_multiple?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          room_id?: string;
+          created_by?: string;
+          question?: string;
+          options?: PollOption[];
+          allow_multiple?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      poll_votes: {
+        Row: {
+          poll_id: string;
+          user_id: string;
+          option_id: string;
+          voted_at: string;
+        };
+        Insert: {
+          poll_id: string;
+          user_id: string;
+          option_id: string;
+          voted_at?: string;
+        };
+        Update: {
+          poll_id?: string;
+          user_id?: string;
+          option_id?: string;
+          voted_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -504,3 +574,5 @@ export type Album = Tables<"albums">;
 export type AlbumPhoto = Tables<"album_photos">;
 export type Payment = Tables<"payments">;
 export type AdminLog = Tables<"admin_logs">;
+export type Poll = Tables<"polls">;
+export type PollVote = Tables<"poll_votes">;

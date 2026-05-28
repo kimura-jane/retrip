@@ -20,9 +20,12 @@ import {
   removeReactionAction,
   uploadChatMediaAction,
 } from "@/features/chat/actions";
+import { deletePollAction } from "@/features/poll/actions";
 import { ReactionPicker } from "@/features/chat/reaction-picker";
 import { MessageMenu, type MessageMenuAction } from "@/features/chat/message-menu";
 import { getTheme, getFont } from "@/features/chat/theme";
+import { PollBubble, type PollData } from "./poll-bubble";
+import { PollComposer } from "./poll-composer";
 import type { ChatThemeColor, ChatFont } from "@/types/database";
 
 type MessageRow = {
@@ -35,6 +38,8 @@ type MessageRow = {
   reply_to_message_id: string | null;
   media_url: string | null;
   media_type: "image" | "video" | "gif" | null;
+  message_type: "text" | "poll";
+  poll_id: string | null;
 };
 
 type ReactionRow = {
@@ -54,8 +59,10 @@ type Props = {
   roomName: string;
   roomDescription: string | null;
   currentUserId: string;
+  isAdmin: boolean;
   initialMessages: MessageRow[];
   initialReactions: ReactionRow[];
+  initialPolls: PollData[];
   senders: Record<string, SenderInfo>;
   themeColor: ChatThemeColor;
   chatFont: ChatFont;
@@ -66,14 +73,17 @@ export function ChatRoomView({
   roomName,
   roomDescription,
   currentUserId,
+  isAdmin,
   initialMessages,
   initialReactions,
+  initialPolls,
   senders: initialSenders,
   themeColor,
   chatFont,
 }: Props) {
   const [messages, setMessages] = useState<MessageRow[]>(initialMessages);
   const [reactions, setReactions] = useState<ReactionRow[]>(initialReactions);
+  const [polls, setPolls] = useState<PollData[]>(initialPolls);
   const [senders, setSenders] = useState<Record<string, SenderInfo>>(initialSenders);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +93,7 @@ export function ChatRoomView({
   const [replyTo, setReplyTo] = useState<MessageRow | null>(null);
   const [menuFor, setMenuFor] = useState<MessageRow | null>(null);
   const [pickerFor, setPickerFor] = useState<MessageRow | null>(null);
+  const [showPollComposer, setShowPollComposer] = useState(false);
   const [uploadPreview, setUploadPreview] = useState<{
     url: string;
     mediaType: "image" | "video" | "gif";
@@ -126,6 +137,69 @@ export function ChatRoomView({
     bottomRef.current?.scrollIntoView({ behavior: "auto" });
   }, [messages.length, viewportHeight]);
 
+  // poll を最新化する（投票の楽観更新後やリアルタイム反映用）
+  const fetchPolls = async (pollIds: string[]) => {
+    if (pollIds.length === 0) return;
+
+    const { data: pollsData } = await supabase
+      .from("polls")
+      .select("id, room_id, created_by, question, options, allow_multiple, created_at")
+      .in("id", pollIds);
+
+    const { data: resultsData } = await supabase
+      .from("poll_results")
+      .select("poll_id, option_id, vote_count")
+      .in("poll_id", pollIds);
+
+    const { data: myVotesData } = await supabase
+      .from("poll_votes")
+      .select("poll_id, option_id")
+      .in("poll_id", pollIds)
+      .eq("user_id", currentUserId);
+
+    const pollRows = (pollsData ?? []) as unknown as Array<{
+      id: string;
+      created_by: string;
+      question: string;
+      options: { id: string; label: string }[];
+    }>;
+    const results = (resultsData ?? []) as Array<{
+      poll_id: string;
+      option_id: string;
+      vote_count: number;
+    }>;
+    const myVotes = (myVotesData ?? []) as Array<{
+      poll_id: string;
+      option_id: string;
+    }>;
+
+    const fresh: PollData[] = pollRows.map((p) => {
+      const counts: Record<string, number> = {};
+      for (const r of results) {
+        if (r.poll_id === p.id) counts[r.option_id] = r.vote_count;
+      }
+      const my = myVotes.find((v) => v.poll_id === p.id);
+      return {
+        id: p.id,
+        question: p.question,
+        options: p.options,
+        voteCounts: counts,
+        myVoteOptionId: my?.option_id ?? null,
+        createdBy: p.created_by,
+      };
+    });
+
+    setPolls((prev) => {
+      const merged = [...prev];
+      for (const f of fresh) {
+        const idx = merged.findIndex((p) => p.id === f.id);
+        if (idx >= 0) merged[idx] = f;
+        else merged.push(f);
+      }
+      return merged;
+    });
+  };
+
   useEffect(() => {
     const channel = supabase
       .channel(`room:${roomId}`)
@@ -155,6 +229,10 @@ export function ChatRoomView({
                 [newMessage.user_id]: data as SenderInfo,
               }));
             }
+          }
+          // 投票メッセージなら poll データも取得
+          if (newMessage.message_type === "poll" && newMessage.poll_id) {
+            fetchPolls([newMessage.poll_id]);
           }
         }
       )
@@ -192,11 +270,28 @@ export function ChatRoomView({
           setReactions((prev) => prev.filter((r) => r.id !== oldReaction.id));
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "poll_votes" },
+        (payload) => {
+          const vote = payload.new as { poll_id: string };
+          fetchPolls([vote.poll_id]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "poll_votes" },
+        (payload) => {
+          const vote = payload.old as { poll_id: string };
+          if (vote.poll_id) fetchPolls([vote.poll_id]);
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, senders, supabase]);
 
   const reactionsByMessage = useMemo(() => {
@@ -211,6 +306,46 @@ export function ChatRoomView({
     }
     return map;
   }, [reactions, currentUserId]);
+
+  const pollsById = useMemo(() => {
+    const map: Record<string, PollData> = {};
+    for (const p of polls) map[p.id] = p;
+    return map;
+  }, [polls]);
+
+  // PollBubble からの楽観更新コールバック
+  const handleVoteChange = (pollId: string, newOptionId: string | null) => {
+    setPolls((prev) =>
+      prev.map((p) => {
+        if (p.id !== pollId) return p;
+        const counts = { ...p.voteCounts };
+        // 旧票を減らす
+        if (p.myVoteOptionId) {
+          counts[p.myVoteOptionId] = Math.max(0, (counts[p.myVoteOptionId] ?? 0) - 1);
+        }
+        // 新票を増やす
+        if (newOptionId) {
+          counts[newOptionId] = (counts[newOptionId] ?? 0) + 1;
+        }
+        return {
+          ...p,
+          myVoteOptionId: newOptionId,
+          voteCounts: counts,
+        };
+      })
+    );
+  };
+
+  // 投票削除
+  const handleDeletePoll = (pollId: string) => {
+    if (!confirm("この投票を削除します。よろしいですか？")) return;
+    startTransition(async () => {
+      const result = await deletePollAction(pollId, roomId);
+      if (!result.success) {
+        setError(result.error);
+      }
+    });
+  };
 
   const handleSend = () => {
     const content = input.trim();
@@ -376,6 +511,28 @@ export function ChatRoomView({
               ? senders[replyToMsg.user_id]
               : undefined;
 
+            // 投票メッセージは PollBubble を表示
+            if (msg.message_type === "poll" && msg.poll_id && !isDeleted) {
+              const poll = pollsById[msg.poll_id];
+              if (!poll) return null;
+              return (
+                <div
+                  key={msg.id}
+                  ref={(el) => {
+                    messageRefs.current[msg.id] = el;
+                  }}
+                >
+                  <PollBubble
+                    poll={poll}
+                    currentUserId={currentUserId}
+                    isAdmin={isAdmin}
+                    onDeleteRequest={() => handleDeletePoll(poll.id)}
+                    onVoteChange={handleVoteChange}
+                  />
+                </div>
+              );
+            }
+
             return (
               <MessageBubble
                 key={msg.id}
@@ -460,6 +617,7 @@ export function ChatRoomView({
                   controls={false}
                 />
               ) : (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={uploadPreview.url}
                   alt="preview"
@@ -515,6 +673,29 @@ export function ChatRoomView({
                     </svg>
                   )}
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPollComposer(true)}
+                  disabled={isPending}
+                  className="flex-shrink-0 h-10 w-10 rounded-full bg-paper-50 hover:bg-[#E5E0D8] transition-colors flex items-center justify-center disabled:opacity-40 border border-[#E5E0D8]"
+                  aria-label="投票を作る"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-5 h-5 text-ink-500"
+                  >
+                    <rect x="3" y="12" width="4" height="9" />
+                    <rect x="10" y="6" width="4" height="15" />
+                    <rect x="17" y="9" width="4" height="12" />
+                  </svg>
+                </button>
               </>
             )}
 
@@ -563,6 +744,14 @@ export function ChatRoomView({
           onClose={() => setPickerFor(null)}
         />
       )}
+
+      {showPollComposer && (
+        <PollComposer
+          roomId={roomId}
+          onClose={() => setShowPollComposer(false)}
+          onCreated={() => setShowPollComposer(false)}
+        />
+      )}
     </div>
   );
 }
@@ -602,190 +791,167 @@ function MessageBubble({
   onReactionClick,
   onReplyClick,
 }: MessageBubbleProps) {
-  const time = formatTime(message.created_at);
-  const longPressTimer = useRef<number | null>(null);
-  const longPressTriggered = useRef(false);
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressTriggeredRef = useRef(false);
 
-  const handlePointerDown = (_e: ReactPointerEvent) => {
-    if (isDeleted) return;
-    longPressTriggered.current = false;
-    longPressTimer.current = window.setTimeout(() => {
-      longPressTriggered.current = true;
-      if ("vibrate" in navigator) navigator.vibrate(30);
+  const handlePointerDown = (_e: ReactPointerEvent<HTMLDivElement>) => {
+    pressTriggeredRef.current = false;
+    pressTimerRef.current = setTimeout(() => {
+      pressTriggeredRef.current = true;
       onLongPress();
-    }, 300);
+    }, 500);
   };
 
-  const handlePointerUp = () => {
-    if (longPressTimer.current) {
-      window.clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
+  const handlePointerEnd = () => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
     }
   };
 
-  const handlePointerCancel = handlePointerUp;
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleClick = () => {
+    if (pressTriggeredRef.current) {
+      pressTriggeredRef.current = false;
+      return;
+    }
   };
 
-  const avatar = (
-    <div className="flex-shrink-0 w-8">
-      {showSender && (
-        <div className="w-8 h-8 rounded-full bg-paper-50 border border-[#E5E0D8] flex items-center justify-center text-xs text-ink-500 font-serif overflow-hidden">
-          {sender?.avatar_url ? (
-            <img
-              src={sender.avatar_url}
-              alt={sender.display_name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            sender?.display_name?.[0] ?? "?"
-          )}
-        </div>
-      )}
-    </div>
-  );
-
-  const bubbleClass = isMine
-    ? `${isDeleted ? "bg-[#E5E0D8] text-ink-500 italic" : themeMyBubble} rounded-br-md`
-    : `${isDeleted ? "bg-[#E5E0D8] text-ink-500 italic" : "bg-paper-50 text-ink-900 border border-[#E5E0D8]"} rounded-bl-md`;
-
-  const bubbleContent = (
-    <div
-      ref={refSetter}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerCancel}
-      onPointerLeave={handlePointerCancel}
-      onContextMenu={handleContextMenu}
-      className={`px-3.5 py-2 rounded-2xl text-sm break-words select-none transition-all font-light leading-relaxed ${bubbleClass} ${
-        highlighted ? "ring-2 ring-coral-500 ring-offset-1 ring-offset-paper-100" : ""
-      }`}
-      style={{ touchAction: "manipulation" }}
-    >
-      {replyToMsg && !isDeleted && (
-        <button
-          type="button"
-          onClick={onReplyClick}
-          className={`block w-full text-left mb-1.5 pl-2 border-l-2 ${
-            isMine ? "border-white/60" : "border-[#E5E0D8]"
-          } opacity-80 hover:opacity-100 transition`}
-        >
-          <p className={`text-[10px] ${isMine ? "text-white/80" : "text-ink-500"}`}>
-            {replyToSender?.display_name ?? "ユーザー"}
-          </p>
-          <p className={`text-xs truncate ${isMine ? "text-white/90" : "text-ink-500"}`}>
-            {replyToMsg.deleted_at
-              ? "（削除されたメッセージ）"
-              : replyToMsg.content || (replyToMsg.media_type ? "[メディア]" : "")}
-          </p>
-        </button>
-      )}
-
-      {!isDeleted && message.media_url && (
-        <div className="mb-1 -mx-1">
-          {message.media_type === "video" ? (
-            <video
-              src={message.media_url}
-              className="max-w-full max-h-64 rounded-lg"
-              controls
-              preload="metadata"
-            />
-          ) : (
-            <img
-              src={message.media_url}
-              alt="送信画像"
-              className="max-w-full max-h-64 rounded-lg"
-            />
-          )}
-        </div>
-      )}
-
-      {isDeleted ? (
-        "メッセージの送信を取り消しました"
-      ) : (
-        <>
-          {message.content}
-          {isEdited && (
-            <span
-              className={`text-[10px] ml-1 ${
-                isMine ? "opacity-70" : "text-ink-500"
-              }`}
-            >
-              (編集済み)
-            </span>
-          )}
-        </>
-      )}
-    </div>
-  );
-
-  const reactionChips = Object.keys(reactions).length > 0 && (
-    <div className={`flex flex-wrap gap-1 mt-1 ${isMine ? "justify-end" : "justify-start"}`}>
-      {Object.entries(reactions).map(([emoji, info]) => (
-        <button
-          key={emoji}
-          type="button"
-          onClick={() => onReactionClick(emoji)}
-          className={`px-1.5 py-0.5 rounded-full text-xs border transition-colors ${
-            info.mine
-              ? "bg-coral-500/10 border-coral-500/40 text-ink-900"
-              : "bg-paper-50 border-[#E5E0D8] text-ink-500 hover:bg-[#E5E0D8]"
-          }`}
-        >
-          <span className="mr-0.5">{emoji}</span>
-          <span className="text-[10px]">{info.count}</span>
-        </button>
-      ))}
-    </div>
-  );
-
-  if (isMine) {
-    return (
-      <div className="flex justify-end items-end gap-2 px-1 py-0.5">
-        <div className="flex flex-col items-end max-w-[75%]">
-          {showSender && (
-            <span className="text-[11px] text-ink-500 font-light mb-0.5 mr-1">
-              {sender?.display_name ?? "自分"}
-            </span>
-          )}
-          <div className="flex items-end gap-1.5">
-            <span className="text-[10px] text-ink-500/60 mb-1 select-none flex-shrink-0 font-light">
-              {time}
-            </span>
-            {bubbleContent}
-          </div>
-          {reactionChips}
-        </div>
-        {avatar}
-      </div>
-    );
-  }
+  const senderName = sender?.display_name ?? "（不明）";
+  const avatarUrl = sender?.avatar_url;
 
   return (
-    <div className="flex justify-start items-end gap-2 px-1 py-0.5">
-      {avatar}
-      <div className="flex flex-col items-start max-w-[75%]">
-        {showSender && (
-          <span className="text-[11px] text-ink-500 font-light mb-0.5 ml-1">
-            {sender?.display_name ?? "不明なユーザー"}
-          </span>
+    <div
+      ref={refSetter}
+      className={`flex gap-2 mb-1 ${isMine ? "flex-row-reverse" : ""} ${
+        highlighted ? "bg-coral-500/10 -mx-3 px-3 py-1 transition-colors" : ""
+      }`}
+    >
+      {/* アバター */}
+      <div className="flex-shrink-0 w-8">
+        {showSender && avatarUrl && !isMine && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt={senderName}
+            className="w-8 h-8 rounded-full object-cover bg-paper-200"
+          />
         )}
-        <div className="flex items-end gap-1.5">
-          {bubbleContent}
-          <span className="text-[10px] text-ink-500/60 mb-1 select-none flex-shrink-0 font-light">
-            {time}
-          </span>
+        {showSender && !avatarUrl && !isMine && (
+          <div className="w-8 h-8 rounded-full bg-paper-200" />
+        )}
+        {showSender && isMine && avatarUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt={senderName}
+            className="w-8 h-8 rounded-full object-cover bg-paper-200"
+          />
+        )}
+      </div>
+
+      {/* バブル */}
+      <div className={`flex flex-col max-w-[75%] ${isMine ? "items-end" : "items-start"}`}>
+        {showSender && (
+          <p className="text-[11px] text-ink-500 font-light mb-0.5 px-1 tracking-wide">
+            {senderName}
+          </p>
+        )}
+
+        {/* 返信プレビュー */}
+        {replyToMsg && (
+          <button
+            type="button"
+            onClick={onReplyClick}
+            className="text-[10px] bg-paper-50 border-l-2 border-coral-500 px-2 py-1 mb-1 text-ink-500 hover:bg-paper-200 transition-colors max-w-full text-left"
+          >
+            <span className="font-display italic uppercase tracking-widest2 mr-1">
+              ↳ {replyToSender?.display_name ?? "ユーザー"}:
+            </span>
+            <span className="truncate inline-block max-w-[200px] align-middle">
+              {replyToMsg.deleted_at
+                ? "（削除されたメッセージ）"
+                : replyToMsg.content || (replyToMsg.media_type ? "[メディア]" : "")}
+            </span>
+          </button>
+        )}
+
+        <div
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerEnd}
+          onPointerLeave={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
+          onClick={handleClick}
+          className={`px-3.5 py-2 select-none break-words whitespace-pre-wrap text-[14.5px] leading-relaxed ${
+            isDeleted
+              ? "bg-[#E5E0D8] text-ink-500 italic font-light"
+              : isMine
+              ? `${themeMyBubble} rounded-2xl rounded-br-md`
+              : "bg-paper-50 text-ink-900 font-light rounded-2xl rounded-bl-md"
+          }`}
+          style={{ touchAction: "manipulation" }}
+        >
+          {isDeleted ? (
+            "（送信を取り消しました）"
+          ) : (
+            <>
+              {message.media_url && message.media_type && (
+                <div className={message.content ? "mb-2" : ""}>
+                  {message.media_type === "video" ? (
+                    <video
+                      src={message.media_url}
+                      controls
+                      className="max-w-full max-h-64 rounded-lg"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={message.media_url}
+                      alt=""
+                      className="max-w-full max-h-64 rounded-lg"
+                    />
+                  )}
+                </div>
+              )}
+              {message.content}
+            </>
+          )}
         </div>
-        {reactionChips}
+
+        {/* タイムスタンプ + 編集マーク */}
+        <p className="text-[10px] text-ink-500 mt-0.5 px-1 font-light tracking-wide">
+          {formatTime(message.created_at)}
+          {isEdited && (
+            <span className="ml-1 font-display italic">· edited</span>
+          )}
+        </p>
+
+        {/* リアクション */}
+        {Object.keys(reactions).length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {Object.entries(reactions).map(([emoji, info]) => (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => onReactionClick(emoji)}
+                className={`text-[11px] px-2 py-0.5 rounded-full border transition ${
+                  info.mine
+                    ? "bg-coral-500/20 border-coral-500/40 text-coral-700"
+                    : "bg-paper-50 border-[#E5E0D8] text-ink-500 hover:bg-paper-200"
+                }`}
+              >
+                {emoji} {info.count}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function formatTime(iso: string): string {
-  const date = new Date(iso);
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mm = String(date.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
+  const d = new Date(iso);
+  const h = String(d.getHours()).padStart(2, "0");
+  const m = String(d.getMinutes()).padStart(2, "0");
+  return `${h}:${m}`;
 }

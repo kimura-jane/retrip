@@ -217,19 +217,28 @@ export function ChatRoomView({
             if (prev.some((m) => m.id === newMessage.id)) return prev;
             return [...prev, newMessage];
           });
-          if (!senders[newMessage.user_id]) {
-            const { data } = await supabase
-              .from("users")
-              .select("display_name,avatar_url")
-              .eq("id", newMessage.user_id)
-              .maybeSingle();
-            if (data) {
-              setSenders((prev) => ({
-                ...prev,
-                [newMessage.user_id]: data as SenderInfo,
-              }));
-            }
-          }
+          // 送信者情報が未取得なら取得する。
+          // ここで senders を直接参照すると useEffect の依存に senders が必要になり、
+          // メッセージ受信のたびにチャンネルが張り直されてフリーズの原因になる。
+          // そのため「未取得かどうか」も setSenders の関数型更新の中で判定する。
+          setSenders((prevSenders) => {
+            if (prevSenders[newMessage.user_id]) return prevSenders;
+            // まだ無い場合だけ非同期で取得し、取得後に再度 setSenders する
+            void (async () => {
+              const { data } = await supabase
+                .from("users")
+                .select("display_name,avatar_url")
+                .eq("id", newMessage.user_id)
+                .maybeSingle();
+              if (data) {
+                setSenders((cur) => {
+                  if (cur[newMessage.user_id]) return cur;
+                  return { ...cur, [newMessage.user_id]: data as SenderInfo };
+                });
+              }
+            })();
+            return prevSenders;
+          });
           // 投票メッセージなら poll データも取得
           if (newMessage.message_type === "poll" && newMessage.poll_id) {
             fetchPolls([newMessage.poll_id]);
@@ -275,7 +284,7 @@ export function ChatRoomView({
         { event: "INSERT", schema: "public", table: "poll_votes" },
         (payload) => {
           const vote = payload.new as { poll_id: string };
-          fetchPolls([vote.poll_id]);
+          if (vote.poll_id) fetchPolls([vote.poll_id]);
         }
       )
       .on(
@@ -291,8 +300,9 @@ export function ChatRoomView({
     return () => {
       supabase.removeChannel(channel);
     };
+    // senders を依存に入れないこと（入れると受信のたびに再購読してフリーズする）
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId, senders, supabase]);
+  }, [roomId, supabase]);
 
   const reactionsByMessage = useMemo(() => {
     const map: Record<string, Record<string, { count: number; mine: boolean }>> = {};

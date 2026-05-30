@@ -11,7 +11,7 @@ if (!secretKey) {
 
 export const stripe = new Stripe(secretKey, {
   // SDK が要求する API バージョン。SDK のメジャー更新時はここも合わせる。
-  apiVersion: "2025-04-30.basil",
+  apiVersion: "2025-02-24.acacia",
   appInfo: {
     name: "Re:Trip",
   },

@@ -56,6 +56,17 @@ export default async function BookingCompletePage({
 
   const isConfirmed = booking?.status === "confirmed";
 
+  // 確定済みなら、該当ツアーのチャット部屋 ID を取得して導線を作る
+  let chatRoomId: string | null = null;
+  if (isConfirmed && tourId) {
+    const { data: room } = await supabase
+      .from("chat_rooms")
+      .select("id")
+      .eq("tour_id", tourId)
+      .maybeSingle<{ id: string }>();
+    chatRoomId = room?.id ?? null;
+  }
+
   // 集合場所の表示名・時刻を解決
   const meetingPoint =
     booking?.meeting_point_id && tour
@@ -128,9 +139,9 @@ export default async function BookingCompletePage({
 
       {/* 導線 */}
       <div className="mt-10 space-y-3">
-        {isConfirmed && tourId && (
+        {isConfirmed && (
           <Link
-            href={`/tours/${tourId}`}
+            href={chatRoomId ? `/chat/${chatRoomId}` : "/chat"}
             className="block w-full px-6 py-4 bg-ink-900 text-paper-100 text-center text-[12px] tracking-widest2 uppercase hover:bg-coral-700 transition-colors"
           >
             ツアーのチャットを開く

@@ -73,4 +73,33 @@ export default function BookingPanel({ tourId, meetingPoints }: Props) {
                   {i === 0 && (
                     <span className="mt-1 inline-block text-[10px] tracking-widest2 uppercase text-coral-700 font-display italic">
                       Main
-                    </span
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={loading}
+        className="w-full px-6 py-4 bg-ink-900 text-paper-100 text-[12px] tracking-widest2 uppercase hover:bg-coral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {loading ? "決済ページへ移動中…" : "予約して決済に進む"}
+      </button>
+
+      {error && (
+        <p className="mt-4 text-[12px] font-light text-coral-700 leading-loose2 text-center">
+          {error}
+        </p>
+      )}
+
+      <p className="mt-4 text-[11px] font-light text-ink-500 leading-loose2 text-center">
+        決済は Stripe の安全な決済ページで行われます。
+      </p>
+    </div>
+  );
+}

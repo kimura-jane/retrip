@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, MeetingPoint } from "@/types/database";
+import BookingPanel from "./booking-panel";
 
 type TourRow = Database["public"]["Tables"]["tours"]["Row"];
 
@@ -224,28 +225,33 @@ export default async function TourDetailPage({ params }: { params: Params }) {
             </dl>
 
             {/* CTA */}
-            <div className="mt-10">
-              {user ? (
+            {isSample ? (
+              <div className="mt-10">
                 <button
                   disabled
                   className="w-full px-6 py-4 bg-ink-900/40 text-paper-100 text-[12px] tracking-widest2 uppercase cursor-not-allowed"
                 >
                   申し込み（準備中）
                 </button>
-              ) : (
+                <p className="mt-4 text-[11px] font-light text-ink-500 leading-loose2 text-center">
+                  サンプルツアーにつき、お申し込み機能は近日公開予定です。
+                </p>
+              </div>
+            ) : user ? (
+              <BookingPanel tourId={tour.id} meetingPoints={meetingPoints} />
+            ) : (
+              <div className="mt-10">
                 <Link
                   href="/login"
                   className="block w-full text-center px-6 py-4 bg-ink-900 text-paper-100 text-[12px] tracking-widest2 uppercase hover:bg-coral-700 transition-colors"
                 >
                   ログインして申し込む
                 </Link>
-              )}
-              <p className="mt-4 text-[11px] font-light text-ink-500 leading-loose2 text-center">
-                {isSample
-                  ? "サンプルツアーにつき、お申し込み機能は近日公開予定です。"
-                  : "お申し込み機能は近日公開予定です。"}
-              </p>
-            </div>
+                <p className="mt-4 text-[11px] font-light text-ink-500 leading-loose2 text-center">
+                  ご予約にはログインと本人確認が必要です。
+                </p>
+              </div>
+            )}
           </div>
         </aside>
       </section>

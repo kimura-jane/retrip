@@ -19,7 +19,8 @@ type TourRow = {
   capacity_total: number;
   capacity_male: number | null;
   capacity_female: number | null;
-  meeting_points: { id: string; label?: string; name?: string }[];
+  // MeetingPoint は name を正とする（label は使わない）
+  meeting_points: { id: string; name?: string; time?: string }[];
 };
 
 // ============================================
@@ -117,6 +118,7 @@ export async function startCheckoutAction(
   }
 
   // 6. Stripe Checkout Session 作成
+  // NEXT_PUBLIC_SITE_URL は未設定の想定。その場合は本番URLにフォールバック。
   const origin =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://retrip-coral.vercel.app";
 

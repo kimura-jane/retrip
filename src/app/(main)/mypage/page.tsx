@@ -5,7 +5,7 @@ import { signOutAction } from "@/features/auth/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GENDER_LABELS } from "@/features/user/schema";
 import { ChatThemeForm } from "./chat-theme-form";
-import type { Gender, ChatThemeColor, ChatFont } from "@/types/database";
+import type { Gender, ChatThemeColor, ChatFont, BookingStatus } from "@/types/database";
 
 type ProfileRow = {
   display_name: string | null;
@@ -22,6 +22,20 @@ type ProfileRow = {
 };
 
 type VerificationStatus = "verified" | "reviewing" | "rejected" | "none";
+
+// 予約 + ツアー情報（JOIN 結果）
+type BookingWithTour = {
+  id: string;
+  status: BookingStatus;
+  amount_paid: number;
+  tours: {
+    id: string;
+    title: string;
+    destination: string;
+    departure_date: string;
+    cover_image_url: string | null;
+  } | null;
+};
 
 export default async function MyPage() {
   const supabase = await createClient();
@@ -40,6 +54,57 @@ export default async function MyPage() {
     .maybeSingle();
 
   const profile = data as ProfileRow | null;
+
+  // 予約一覧を取得（cancelled は除外、ツアー情報も JOIN）
+  const { data: bookingsData } = await supabase
+    .from("bookings")
+    .select(
+      "id,status,amount_paid,tours(id,title,destination,departure_date,cover_image_url)"
+    )
+    .eq("user_id", user.id)
+    .neq("status", "cancelled");
+
+  const bookings = (bookingsData as unknown as BookingWithTour[] | null) ?? [];
+
+  // 出発日で「今後」「過去」に振り分け
+  const now = Date.now();
+  const upcoming: BookingWithTour[] = [];
+  const past: BookingWithTour[] = [];
+  for (const b of bookings) {
+    if (!b.tours) continue;
+    const depart = new Date(b.tours.departure_date).getTime();
+    if (!isNaN(depart) && depart >= now) {
+      upcoming.push(b);
+    } else {
+      past.push(b);
+    }
+  }
+  // 今後は出発が近い順、過去は新しい順
+  upcoming.sort(
+    (a, b) =>
+      new Date(a.tours!.departure_date).getTime() -
+      new Date(b.tours!.departure_date).getTime()
+  );
+  past.sort(
+    (a, b) =>
+      new Date(b.tours!.departure_date).getTime() -
+      new Date(a.tours!.departure_date).getTime()
+  );
+
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("ja-JP", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+  const statusLabel: Record<BookingStatus, string> = {
+    pending: "保留中",
+    confirmed: "予約確定",
+    cancelled: "キャンセル",
+    attended: "参加済み",
+    no_show: "不参加",
+  };
 
   const hasSubmittedId = !!profile?.id_document_url;
   const isVerified = profile?.id_verified === true;
@@ -62,6 +127,40 @@ export default async function MyPage() {
   const rejectedAtText = profile?.id_rejected_at
     ? new Date(profile.id_rejected_at).toLocaleDateString("ja-JP")
     : null;
+
+  // 予約カード（今後・過去で共通利用）
+  const renderBookingCard = (b: BookingWithTour) => {
+    if (!b.tours) return null;
+    return (
+      <Link
+        key={b.id}
+        href={`/tours/${b.tours.id}`}
+        className="group flex items-center gap-5 border border-line bg-paper-100 p-4 hover:border-ink-500 transition-colors"
+      >
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden bg-paper-200">
+          {b.tours.cover_image_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={b.tours.cover_image_url}
+              alt={b.tours.title}
+              className="h-full w-full object-cover"
+            />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-display italic text-[10px] tracking-widest2 uppercase text-ink-500">
+            {b.tours.destination} · {fmtDate(b.tours.departure_date)}
+          </p>
+          <p className="mt-1 font-serif text-[15px] text-ink-900 truncate">
+            {b.tours.title}
+          </p>
+          <span className="mt-1 inline-block text-[10px] tracking-widest2 uppercase text-coral-700 font-display italic">
+            {statusLabel[b.status]}
+          </span>
+        </div>
+      </Link>
+    );
+  };
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
@@ -137,6 +236,38 @@ export default async function MyPage() {
             </div>
           </div>
         </dl>
+      </section>
+
+      <div className="h-px w-full bg-[#E5E0D8] mb-16" />
+
+      {/* 予約したツアー */}
+      <section className="mb-16">
+        <p className="font-display italic uppercase tracking-widest2 text-[11px] text-coral-700 mb-8">
+          My Journeys
+        </p>
+
+        {/* 今後の予約 */}
+        <div className="mb-10">
+          <h2 className="font-serif text-lg text-ink-900 mb-5">今後の旅</h2>
+          {upcoming.length === 0 ? (
+            <p className="text-[13px] font-light text-ink-500 leading-loose">
+              予約中のツアーはありません。
+              <Link href="/tours" className="ml-2 text-coral-700 hover:text-coral-500">
+                ツアーを探す →
+              </Link>
+            </p>
+          ) : (
+            <div className="space-y-3">{upcoming.map(renderBookingCard)}</div>
+          )}
+        </div>
+
+        {/* 過去の参加 */}
+        {past.length > 0 && (
+          <div>
+            <h2 className="font-serif text-lg text-ink-900 mb-5">これまでの旅</h2>
+            <div className="space-y-3">{past.map(renderBookingCard)}</div>
+          </div>
+        )}
       </section>
 
       <div className="h-px w-full bg-[#E5E0D8] mb-16" />

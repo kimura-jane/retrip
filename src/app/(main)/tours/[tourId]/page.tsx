@@ -33,6 +33,30 @@ export default async function TourDetailPage({ params }: { params: Params }) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // このツアーに対する自分の予約状況を確認する（cancelled は予約扱いしない）
+  let existingBooking: {
+    id: string;
+    status: string;
+    meeting_point_id: string | null;
+  } | null = null;
+
+  if (user) {
+    const { data: bookingData } = await supabase
+      .from("bookings")
+      .select("id, status, meeting_point_id")
+      .eq("tour_id", tourId)
+      .eq("user_id", user.id)
+      .neq("status", "cancelled")
+      .maybeSingle();
+
+    existingBooking = (bookingData as typeof existingBooking) ?? null;
+  }
+
+  // 予約済みの集合場所名を求める（表示用）
+  const bookedMeetingPoint = existingBooking?.meeting_point_id
+    ? meetingPoints.find((p) => p.id === existingBooking?.meeting_point_id) ?? null
+    : null;
+
   const fmt = (d: string | null) =>
     d
       ? new Date(d).toLocaleDateString("ja-JP", {
@@ -237,9 +261,7 @@ export default async function TourDetailPage({ params }: { params: Params }) {
                   サンプルツアーにつき、お申し込み機能は近日公開予定です。
                 </p>
               </div>
-            ) : user ? (
-              <BookingPanel tourId={tour.id} meetingPoints={meetingPoints} />
-            ) : (
+            ) : !user ? (
               <div className="mt-10">
                 <Link
                   href="/login"
@@ -251,6 +273,34 @@ export default async function TourDetailPage({ params }: { params: Params }) {
                   ご予約にはログインと本人確認が必要です。
                 </p>
               </div>
+            ) : existingBooking ? (
+              <div className="mt-10">
+                <div className="border border-sage-500 bg-sage-50 px-5 py-5 text-center">
+                  <p className="font-display italic text-[11px] tracking-widest2 uppercase text-sage-700">
+                    Reserved
+                  </p>
+                  <p className="mt-2 font-serif text-[15px] text-ink-900 tracking-[0.04em]">
+                    予約済みのツアーです
+                  </p>
+                  {bookedMeetingPoint && (
+                    <p className="mt-2 text-[12px] font-light text-ink-500 leading-loose2">
+                      集合場所：{bookedMeetingPoint.name}
+                      {bookedMeetingPoint.time ? `（${bookedMeetingPoint.time}）` : ""}
+                    </p>
+                  )}
+                </div>
+                <Link
+                  href="/mypage"
+                  className="mt-4 block w-full text-center px-6 py-4 bg-ink-900 text-paper-100 text-[12px] tracking-widest2 uppercase hover:bg-coral-700 transition-colors"
+                >
+                  マイページで予約を確認
+                </Link>
+                <p className="mt-4 text-[11px] font-light text-ink-500 leading-loose2 text-center">
+                  ツアーの旅チャットや詳細はマイページからご確認いただけます。
+                </p>
+              </div>
+            ) : (
+              <BookingPanel tourId={tour.id} meetingPoints={meetingPoints} />
             )}
           </div>
         </aside>

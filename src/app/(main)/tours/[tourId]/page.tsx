@@ -34,11 +34,10 @@ export default async function TourDetailPage({ params }: { params: Params }) {
   } = await supabase.auth.getUser();
 
   // このツアーに対する自分の予約状況を確認する（cancelled は予約扱いしない）
-  let existingBooking: {
-    id: string;
-    status: string;
-    meeting_point_id: string | null;
-  } | null = null;
+  // maybeSingle にジェネリックを渡して型を確定させる（このリポジトリの流儀）
+  let existingBooking:
+    | { id: string; status: string; meeting_point_id: string | null }
+    | null = null;
 
   if (user) {
     const { data: bookingData } = await supabase
@@ -47,9 +46,13 @@ export default async function TourDetailPage({ params }: { params: Params }) {
       .eq("tour_id", tourId)
       .eq("user_id", user.id)
       .neq("status", "cancelled")
-      .maybeSingle();
+      .maybeSingle<{
+        id: string;
+        status: string;
+        meeting_point_id: string | null;
+      }>();
 
-    existingBooking = (bookingData as typeof existingBooking) ?? null;
+    existingBooking = bookingData ?? null;
   }
 
   // 予約済みの集合場所名を求める（表示用）

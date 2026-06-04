@@ -10,6 +10,12 @@ type RoomRow = {
   sort_order: number;
 };
 
+type TourRoomRow = {
+  id: string;
+  name: string;
+  tour_id: string | null;
+};
+
 export default async function ChatListPage() {
   const supabase = await createClient();
   const {
@@ -27,7 +33,7 @@ export default async function ChatListPage() {
   const profile = profileData as { id_verified: boolean } | null;
   const isVerified = profile?.id_verified === true;
 
-  // 部屋一覧取得（RLSが効いてるので、見えるものだけ返ってくる）
+  // lounge 部屋一覧取得（RLSが効いてるので、見えるものだけ返ってくる）
   const { data: roomsData } = await supabase
     .from("chat_rooms")
     .select("id,name,description,requires_verification,sort_order")
@@ -38,6 +44,17 @@ export default async function ChatListPage() {
 
   const publicRooms = rooms.filter((r) => !r.requires_verification);
   const verifiedRooms = rooms.filter((r) => r.requires_verification);
+
+  // 参加中の旅チャット（tour room）取得。
+  // RLS の chat_rooms_select_tour_participant により、
+  // 予約のあるツアーの room だけが返ってくる。
+  const { data: tourRoomsData } = await supabase
+    .from("chat_rooms")
+    .select("id,name,tour_id")
+    .eq("room_type", "tour")
+    .order("created_at", { ascending: false });
+
+  const tourRooms = (tourRoomsData as TourRoomRow[] | null) ?? [];
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
@@ -54,6 +71,32 @@ export default async function ChatListPage() {
           他の旅人たちと、自由におしゃべりしましょう。
         </p>
       </header>
+
+      {/* 参加中の旅チャット（予約のあるツアーのみ表示される） */}
+      {tourRooms.length > 0 && (
+        <section className="mb-16">
+          <p className="font-display italic uppercase tracking-widest2 text-[11px] text-coral-700 mb-8">
+            My journeys
+          </p>
+          <ul className="divide-y divide-[#E5E0D8] border-y border-[#E5E0D8]">
+            {tourRooms.map((room) => (
+              <li key={room.id}>
+                <Link
+                  href={`/chat/${room.id}`}
+                  className="flex items-center justify-between py-5 group"
+                >
+                  <span className="font-serif text-lg text-ink-900 group-hover:text-coral-700 transition-colors">
+                    {room.name}
+                  </span>
+                  <span className="font-display italic text-xs text-ink-500 group-hover:text-coral-700 transition-colors">
+                    enter →
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* みんなの広場 */}
       <section className="mb-16">

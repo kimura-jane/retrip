@@ -26,7 +26,7 @@ import { MessageMenu, type MessageMenuAction } from "@/features/chat/message-men
 import { getTheme, getFont } from "@/features/chat/theme";
 import { PollBubble, type PollData } from "./poll-bubble";
 import { PollComposer } from "./poll-composer";
-import IntroPanel, { type IntroRow } from "./intro-panel";
+import IntroPanel, { ProfileModal, type IntroRow } from "./intro-panel";
 import type { ChatThemeColor, ChatFont } from "@/types/database";
 
 type MessageRow = {
@@ -99,6 +99,7 @@ export function ChatRoomView({
   const [menuFor, setMenuFor] = useState<MessageRow | null>(null);
   const [pickerFor, setPickerFor] = useState<MessageRow | null>(null);
   const [showPollComposer, setShowPollComposer] = useState(false);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [uploadPreview, setUploadPreview] = useState<{
     url: string;
     mediaType: "image" | "video" | "gif";
@@ -481,6 +482,14 @@ export function ChatRoomView({
     }
   };
 
+  // プロフィールモーダル用：表示対象の自己紹介と送信者情報を求める
+  const profileIntro = profileUserId
+    ? intros.find((i) => i.user_id === profileUserId) ?? null
+    : null;
+  const profileSender = profileUserId ? senders[profileUserId] : undefined;
+  const profileFallbackName =
+    profileSender?.display_name ?? "ユーザー";
+
   return (
     <div
       className={`fixed left-0 w-full flex flex-col overflow-hidden ${theme.chatBg} ${font.className}`}
@@ -579,6 +588,9 @@ export function ChatRoomView({
                 onLongPress={() => setMenuFor(msg)}
                 onReactionClick={(emoji) => toggleReaction(msg.id, emoji)}
                 onReplyClick={() => replyToMsg && jumpToMessage(replyToMsg.id)}
+                onAvatarClick={
+                  tourId ? () => setProfileUserId(msg.user_id) : undefined
+                }
               />
             );
           })
@@ -778,6 +790,16 @@ export function ChatRoomView({
           onCreated={() => setShowPollComposer(false)}
         />
       )}
+
+      {/* アバタータップで開く単体プロフィール（tour room のみ） */}
+      {profileUserId && (
+        <ProfileModal
+          intro={profileIntro}
+          sender={profileSender}
+          fallbackName={profileFallbackName}
+          onClose={() => setProfileUserId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -798,6 +820,7 @@ type MessageBubbleProps = {
   onLongPress: () => void;
   onReactionClick: (emoji: string) => void;
   onReplyClick: () => void;
+  onAvatarClick?: () => void;
 };
 
 function MessageBubble({
@@ -816,6 +839,7 @@ function MessageBubble({
   onLongPress,
   onReactionClick,
   onReplyClick,
+  onAvatarClick,
 }: MessageBubbleProps) {
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pressTriggeredRef = useRef(false);
@@ -845,6 +869,9 @@ function MessageBubble({
   const senderName = sender?.display_name ?? "（不明）";
   const avatarUrl = sender?.avatar_url;
 
+  // アバター画像／プレースホルダの共通クラス。タップ可能なら少し押せる見た目に
+  const avatarClickable = !!onAvatarClick;
+
   return (
     <div
       ref={refSetter}
@@ -854,25 +881,25 @@ function MessageBubble({
     >
       {/* アバター */}
       <div className="flex-shrink-0 w-8">
-        {showSender && avatarUrl && !isMine && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarUrl}
-            alt={senderName}
-            className="w-8 h-8 rounded-full object-cover bg-paper-200"
-          />
-        )}
-        {showSender && !avatarUrl && !isMine && (
-          <div className="w-8 h-8 rounded-full bg-paper-200" />
-        )}
-        {showSender && isMine && avatarUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarUrl}
-            alt={senderName}
-            className="w-8 h-8 rounded-full object-cover bg-paper-200"
-          />
-        )}
+        {showSender &&
+          (avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt={senderName}
+              onClick={onAvatarClick}
+              className={`w-8 h-8 rounded-full object-cover bg-paper-200 ${
+                avatarClickable ? "cursor-pointer active:opacity-70 transition-opacity" : ""
+              }`}
+            />
+          ) : (
+            <div
+              onClick={onAvatarClick}
+              className={`w-8 h-8 rounded-full bg-paper-200 ${
+                avatarClickable ? "cursor-pointer active:opacity-70 transition-opacity" : ""
+              }`}
+            />
+          ))}
       </div>
 
       {/* バブル */}
@@ -888,12 +915,12 @@ function MessageBubble({
           <button
             type="button"
             onClick={onReplyClick}
-            className="text-[10px] bg-paper-50 border-l-2 border-coral-500 px-2 py-1 mb-1 text-ink-500 hover:bg-paper-200 transition-colors max-w-full text-left"
+            className="text-[10px] bg-paper-50 border-l-2 border-coral-500 px-2 py-1 mb-1 max-w-full text-left rounded"
           >
-            <span className="font-display italic uppercase tracking-widest2 mr-1">
-              ↳ {replyToSender?.display_name ?? "ユーザー"}:
+            <span className="text-ink-500 font-light">
+              {(replyToSender?.display_name ?? "ユーザー") + "："}
             </span>
-            <span className="truncate inline-block max-w-[200px] align-middle">
+            <span className="text-ink-900 font-light">
               {replyToMsg.deleted_at
                 ? "（削除されたメッセージ）"
                 : replyToMsg.content || (replyToMsg.media_type ? "[メディア]" : "")}
@@ -901,68 +928,67 @@ function MessageBubble({
           </button>
         )}
 
+        {/* 本体バブル */}
         <div
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerEnd}
           onPointerLeave={handlePointerEnd}
           onPointerCancel={handlePointerEnd}
           onClick={handleClick}
-          className={`px-3.5 py-2 select-none break-words whitespace-pre-wrap text-[14.5px] leading-relaxed ${
+          className={`relative px-3.5 py-2 rounded-2xl text-[15px] leading-relaxed break-words whitespace-pre-wrap select-none ${
             isDeleted
-              ? "bg-[#E5E0D8] text-ink-500 italic font-light"
+              ? "bg-paper-200 text-ink-500 italic font-light"
               : isMine
-              ? `${themeMyBubble} rounded-2xl rounded-br-md`
-              : "bg-paper-50 text-ink-900 font-light rounded-2xl rounded-bl-md"
+                ? themeMyBubble
+                : "bg-paper-50 text-ink-900 border border-[#E5E0D8]"
           }`}
-          style={{ touchAction: "manipulation" }}
         >
           {isDeleted ? (
-            "（送信を取り消しました）"
+            "送信を取り消しました"
           ) : (
             <>
-              {message.media_url && message.media_type && (
-                <div className={message.content ? "mb-2" : ""}>
-                  {message.media_type === "video" ? (
-                    <video
-                      src={message.media_url}
-                      controls
-                      className="max-w-full max-h-64 rounded-lg"
-                    />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={message.media_url}
-                      alt=""
-                      className="max-w-full max-h-64 rounded-lg"
-                    />
-                  )}
-                </div>
+              {message.media_url && message.media_type === "video" && (
+                <video
+                  src={message.media_url}
+                  controls
+                  className="max-w-full rounded-lg mb-1"
+                />
+              )}
+              {message.media_url && message.media_type !== "video" && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={message.media_url}
+                  alt="media"
+                  className="max-w-full rounded-lg mb-1"
+                />
               )}
               {message.content}
             </>
           )}
         </div>
 
-        {/* タイムスタンプ + 編集マーク */}
-        <p className="text-[10px] text-ink-500 mt-0.5 px-1 font-light tracking-wide">
-          {formatTime(message.created_at)}
+        {/* 時刻・編集済み */}
+        <div className={`flex items-center gap-1.5 mt-0.5 px-1 ${isMine ? "flex-row-reverse" : ""}`}>
+          <span className="text-[10px] text-ink-500 font-light">
+            {formatTime(message.created_at)}
+          </span>
           {isEdited && (
-            <span className="ml-1 font-display italic">· edited</span>
+            <span className="text-[10px] text-ink-500 font-light">編集済み</span>
           )}
-        </p>
+        </div>
 
         {/* リアクション */}
         {Object.keys(reactions).length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1">
+          <div className={`flex flex-wrap gap-1 mt-1 ${isMine ? "justify-end" : ""}`}>
             {Object.entries(reactions).map(([emoji, info]) => (
               <button
                 key={emoji}
                 type="button"
                 onClick={() => onReactionClick(emoji)}
-                className={`text-[11px] px-2 py-0.5 rounded-full border transition ${
+                className={`text-[12px] px-1.5 py-0.5 rounded-full border transition-colors ${
                   info.mine
-                    ? "bg-coral-500/20 border-coral-500/40 text-coral-700"
-                    : "bg-paper-50 border-[#E5E0D8] text-ink-500 hover:bg-paper-200"
+                    ? "bg-coral-50 border-coral-300"
+                    : "bg-paper-50 border-[#E5E0D8] hover:border-ink-500"
                 }`}
               >
                 {emoji} {info.count}
@@ -977,7 +1003,8 @@ function MessageBubble({
 
 function formatTime(iso: string): string {
   const d = new Date(iso);
-  const h = String(d.getHours()).padStart(2, "0");
-  const m = String(d.getMinutes()).padStart(2, "0");
-  return `${h}:${m}`;
+  return d.toLocaleTimeString("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }

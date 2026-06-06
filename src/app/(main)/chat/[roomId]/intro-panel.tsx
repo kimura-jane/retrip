@@ -52,6 +52,155 @@ const AGE_OPTIONS: AgeGroup[] = [
 
 const GENDER_OPTIONS: Gender[] = ["male", "female", "other", "prefer_not_to_say"];
 
+// ===== 自己紹介カードの中身（一覧・単体で共用） =====
+function IntroCardBody({
+  intro,
+  sender,
+}: {
+  intro: IntroRow;
+  sender: Sender | undefined;
+}) {
+  return (
+    <>
+      <div className="flex items-center gap-3">
+        {sender?.avatar_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={sender.avatar_url}
+            alt={intro.nickname}
+            className="w-9 h-9 rounded-full object-cover bg-paper-200"
+          />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-paper-200" />
+        )}
+        <div>
+          <p className="font-serif text-[15px] text-ink-900">{intro.nickname}</p>
+          <p className="text-[11px] text-ink-500 font-light">
+            {AGE_LABELS[intro.age_group]}
+            <span className="mx-1.5">·</span>
+            {GENDER_LABELS[intro.gender]}
+          </p>
+        </div>
+      </div>
+
+      <dl className="mt-3 space-y-2 text-[13px]">
+        {intro.occupation && (
+          <div>
+            <dt className="font-display italic text-[10px] tracking-widest2 uppercase text-coral-700">
+              お仕事・業種
+            </dt>
+            <dd className="text-ink-900 font-light leading-relaxed">
+              {intro.occupation}
+            </dd>
+          </div>
+        )}
+        {intro.hobbies && (
+          <div>
+            <dt className="font-display italic text-[10px] tracking-widest2 uppercase text-coral-700">
+              好きなこと・趣味
+            </dt>
+            <dd className="text-ink-900 font-light leading-relaxed whitespace-pre-line">
+              {intro.hobbies}
+            </dd>
+          </div>
+        )}
+        {intro.spot && (
+          <div>
+            <dt className="font-display italic text-[10px] tracking-widest2 uppercase text-coral-700">
+              楽しみにしているスポット
+            </dt>
+            <dd className="text-ink-900 font-light leading-relaxed whitespace-pre-line">
+              {intro.spot}
+            </dd>
+          </div>
+        )}
+        {intro.message && (
+          <div>
+            <dt className="font-display italic text-[10px] tracking-widest2 uppercase text-coral-700">
+              ひとこと
+            </dt>
+            <dd className="text-ink-900 font-light leading-relaxed whitespace-pre-line">
+              {intro.message}
+            </dd>
+          </div>
+        )}
+      </dl>
+    </>
+  );
+}
+
+// ===== アバタータップで開く単体プロフィールモーダル =====
+export function ProfileModal({
+  intro,
+  sender,
+  fallbackName,
+  onClose,
+}: {
+  intro: IntroRow | null;
+  sender: Sender | undefined;
+  fallbackName: string;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[60] bg-ink-900/40 flex items-end sm:items-center justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:max-w-md bg-paper-100 sm:border sm:border-[#E5E0D8] max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ヘッダー */}
+        <div className="sticky top-0 bg-paper-100 border-b border-[#E5E0D8] px-5 py-4 flex items-center justify-between z-10">
+          <div>
+            <p className="font-display italic uppercase tracking-widest2 text-[10px] text-coral-700">
+              Profile
+            </p>
+            <h2 className="mt-1 font-serif text-lg text-ink-900 tracking-wide">
+              メンバーの自己紹介
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-ink-500 hover:text-ink-900 text-xl leading-none transition-colors"
+            aria-label="閉じる"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="px-5 py-5">
+          {intro ? (
+            <div className="border border-[#E5E0D8] bg-paper-50 p-4">
+              <IntroCardBody intro={intro} sender={sender} />
+            </div>
+          ) : (
+            <div className="border border-[#E5E0D8] bg-paper-50 p-4">
+              <div className="flex items-center gap-3">
+                {sender?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={sender.avatar_url}
+                    alt={fallbackName}
+                    className="w-9 h-9 rounded-full object-cover bg-paper-200"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-paper-200" />
+                )}
+                <p className="font-serif text-[15px] text-ink-900">{fallbackName}</p>
+              </div>
+              <p className="mt-4 text-[13px] text-ink-500 font-light leading-relaxed">
+                この方はまだ自己紹介を書いていません。
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function IntroPanel({
   tourId,
   roomId,
@@ -291,81 +440,14 @@ export default function IntroPanel({
                   </p>
                 ) : (
                   <ul className="space-y-4">
-                    {intros.map((intro) => {
-                      const sender = senders[intro.user_id];
-                      return (
-                        <li
-                          key={intro.user_id}
-                          className="border border-[#E5E0D8] bg-paper-50 p-4"
-                        >
-                          <div className="flex items-center gap-3">
-                            {sender?.avatar_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={sender.avatar_url}
-                                alt={intro.nickname}
-                                className="w-9 h-9 rounded-full object-cover bg-paper-200"
-                              />
-                            ) : (
-                              <div className="w-9 h-9 rounded-full bg-paper-200" />
-                            )}
-                            <div>
-                              <p className="font-serif text-[15px] text-ink-900">
-                                {intro.nickname}
-                              </p>
-                              <p className="text-[11px] text-ink-500 font-light">
-                                {AGE_LABELS[intro.age_group]}
-                                <span className="mx-1.5">·</span>
-                                {GENDER_LABELS[intro.gender]}
-                              </p>
-                            </div>
-                          </div>
-
-                          <dl className="mt-3 space-y-2 text-[13px]">
-                            {intro.occupation && (
-                              <div>
-                                <dt className="font-display italic text-[10px] tracking-widest2 uppercase text-coral-700">
-                                  お仕事・業種
-                                </dt>
-                                <dd className="text-ink-900 font-light leading-relaxed">
-                                  {intro.occupation}
-                                </dd>
-                              </div>
-                            )}
-                            {intro.hobbies && (
-                              <div>
-                                <dt className="font-display italic text-[10px] tracking-widest2 uppercase text-coral-700">
-                                  好きなこと・趣味
-                                </dt>
-                                <dd className="text-ink-900 font-light leading-relaxed whitespace-pre-line">
-                                  {intro.hobbies}
-                                </dd>
-                              </div>
-                            )}
-                            {intro.spot && (
-                              <div>
-                                <dt className="font-display italic text-[10px] tracking-widest2 uppercase text-coral-700">
-                                  楽しみにしているスポット
-                                </dt>
-                                <dd className="text-ink-900 font-light leading-relaxed whitespace-pre-line">
-                                  {intro.spot}
-                                </dd>
-                              </div>
-                            )}
-                            {intro.message && (
-                              <div>
-                                <dt className="font-display italic text-[10px] tracking-widest2 uppercase text-coral-700">
-                                  ひとこと
-                                </dt>
-                                <dd className="text-ink-900 font-light leading-relaxed whitespace-pre-line">
-                                  {intro.message}
-                                </dd>
-                              </div>
-                            )}
-                          </dl>
-                        </li>
-                      );
-                    })}
+                    {intros.map((intro) => (
+                      <li
+                        key={intro.user_id}
+                        className="border border-[#E5E0D8] bg-paper-50 p-4"
+                      >
+                        <IntroCardBody intro={intro} sender={senders[intro.user_id]} />
+                      </li>
+                    ))}
                   </ul>
                 )}
               </div>

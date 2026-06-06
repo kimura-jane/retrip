@@ -1,8 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ChatRoomView } from "./chat-room-view";
+import type { IntroRow } from "./intro-panel";
 import type { PollData } from "./poll-bubble";
-import type { ChatThemeColor, ChatFont, PollOption } from "@/types/database";
+import type { ChatThemeColor, ChatFont, PollOption, AgeGroup, Gender } from "@/types/database";
 
 type RoomRow = {
   id: string;
@@ -10,6 +11,7 @@ type RoomRow = {
   description: string | null;
   room_type: "tour" | "lounge";
   requires_verification: boolean;
+  tour_id: string | null;
 };
 
 type MessageRow = {
@@ -65,6 +67,17 @@ type PollVoteRow = {
   option_id: string;
 };
 
+type IntroDbRow = {
+  user_id: string;
+  nickname: string;
+  age_group: AgeGroup;
+  gender: Gender;
+  occupation: string | null;
+  hobbies: string | null;
+  spot: string | null;
+  message: string | null;
+};
+
 // 旧パレット → 新パレット の安全側マッピング（DB に旧値が残っていた場合の保険）
 const COLOR_MAP: Record<string, ChatThemeColor> = {
   coral: "coral",
@@ -107,7 +120,7 @@ export default async function ChatRoomPage({
 
   const { data: room } = await supabase
     .from("chat_rooms")
-    .select("id,name,description,room_type,requires_verification")
+    .select("id,name,description,room_type,requires_verification,tour_id")
     .eq("id", roomId)
     .maybeSingle<RoomRow>();
   if (!room) {
@@ -184,10 +197,22 @@ export default async function ChatRoomPage({
     });
   }
 
+  // tour room の場合のみ、自己紹介を取得する
+  let intros: IntroRow[] = [];
+  if (room.room_type === "tour" && room.tour_id) {
+    const { data: introsData } = await supabase
+      .from("tour_introductions")
+      .select("user_id,nickname,age_group,gender,occupation,hobbies,spot,message")
+      .eq("tour_id", room.tour_id)
+      .order("created_at", { ascending: true });
+    intros = (introsData as IntroDbRow[] | null) ?? [];
+  }
+
   const userIds = Array.from(
     new Set([
       ...messages.map((m) => m.user_id),
       ...reactions.map((r) => r.user_id),
+      ...intros.map((i) => i.user_id),
     ])
   );
 
@@ -229,6 +254,8 @@ export default async function ChatRoomPage({
       senders={senders}
       themeColor={themeColor}
       chatFont={chatFont}
+      tourId={room.room_type === "tour" ? room.tour_id : null}
+      intros={intros}
     />
   );
 }

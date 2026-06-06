@@ -494,8 +494,11 @@ export function ChatRoomView({
     <div
       className={`fixed left-0 w-full flex flex-col overflow-hidden ${theme.chatBg} ${font.className}`}
       style={{
-        top: `${viewportTop}px`,
-        height: typeof viewportHeight === "number" ? `${viewportHeight}px` : viewportHeight,
+        top: `${viewportTop + 64}px`,
+        height:
+          typeof viewportHeight === "number"
+            ? `${viewportHeight - 64}px`
+            : `calc(${viewportHeight} - 64px)`,
       }}
     >
       {/* ヘッダー */}
@@ -546,52 +549,62 @@ export function ChatRoomView({
               ? senders[replyToMsg.user_id]
               : undefined;
 
+            // 日付が変わったらセパレーターを挿入する
+            const showDateSeparator =
+              !prevMsg || !isSameDay(prevMsg.created_at, msg.created_at);
+
             // 投票メッセージは PollBubble を表示
             if (msg.message_type === "poll" && msg.poll_id && !isDeleted) {
               const poll = pollsById[msg.poll_id];
               if (!poll) return null;
               return (
-                <div
-                  key={msg.id}
-                  ref={(el) => {
-                    messageRefs.current[msg.id] = el;
-                  }}
-                >
-                  <PollBubble
-                    poll={poll}
-                    currentUserId={currentUserId}
-                    isAdmin={isAdmin}
-                    onDeleteRequest={() => handleDeletePoll(poll.id)}
-                    onVoteChange={handleVoteChange}
-                  />
+                <div key={msg.id}>
+                  {showDateSeparator && (
+                    <DateSeparator iso={msg.created_at} />
+                  )}
+                  <div
+                    ref={(el) => {
+                      messageRefs.current[msg.id] = el;
+                    }}
+                  >
+                    <PollBubble
+                      poll={poll}
+                      currentUserId={currentUserId}
+                      isAdmin={isAdmin}
+                      onDeleteRequest={() => handleDeletePoll(poll.id)}
+                      onVoteChange={handleVoteChange}
+                    />
+                  </div>
                 </div>
               );
             }
 
             return (
-              <MessageBubble
-                key={msg.id}
-                refSetter={(el) => {
-                  messageRefs.current[msg.id] = el;
-                }}
-                isMine={isMine}
-                sender={sender}
-                showSender={showSender}
-                message={msg}
-                isDeleted={isDeleted}
-                isEdited={isEdited}
-                reactions={msgReactions}
-                replyToMsg={replyToMsg}
-                replyToSender={replyToSender}
-                highlighted={highlightId === msg.id}
-                themeMyBubble={`${theme.myBubbleBg} ${theme.myBubbleText}`}
-                onLongPress={() => setMenuFor(msg)}
-                onReactionClick={(emoji) => toggleReaction(msg.id, emoji)}
-                onReplyClick={() => replyToMsg && jumpToMessage(replyToMsg.id)}
-                onAvatarClick={
-                  tourId ? () => setProfileUserId(msg.user_id) : undefined
-                }
-              />
+              <div key={msg.id}>
+                {showDateSeparator && <DateSeparator iso={msg.created_at} />}
+                <MessageBubble
+                  refSetter={(el) => {
+                    messageRefs.current[msg.id] = el;
+                  }}
+                  isMine={isMine}
+                  sender={sender}
+                  showSender={showSender}
+                  message={msg}
+                  isDeleted={isDeleted}
+                  isEdited={isEdited}
+                  reactions={msgReactions}
+                  replyToMsg={replyToMsg}
+                  replyToSender={replyToSender}
+                  highlighted={highlightId === msg.id}
+                  themeMyBubble={`${theme.myBubbleBg} ${theme.myBubbleText}`}
+                  onLongPress={() => setMenuFor(msg)}
+                  onReactionClick={(emoji) => toggleReaction(msg.id, emoji)}
+                  onReplyClick={() => replyToMsg && jumpToMessage(replyToMsg.id)}
+                  onAvatarClick={
+                    tourId ? () => setProfileUserId(msg.user_id) : undefined
+                  }
+                />
+              </div>
             );
           })
         )}
@@ -999,6 +1012,41 @@ function MessageBubble({
       </div>
     </div>
   );
+}
+
+// 日付セパレーター（チャット中央に「6月4日」のような区切りを表示）
+function DateSeparator({ iso }: { iso: string }) {
+  return (
+    <div className="flex items-center justify-center my-3">
+      <span className="text-[10px] text-ink-500 font-light bg-paper-50 border border-[#E5E0D8] rounded-full px-3 py-0.5 tracking-wide">
+        {formatDateLabel(iso)}
+      </span>
+    </div>
+  );
+}
+
+// 同じ日（年月日）かどうかを判定する
+function isSameDay(isoA: string, isoB: string): boolean {
+  const a = new Date(isoA);
+  const b = new Date(isoB);
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+// 「2026年6月4日（木）」のような日付ラベル。今年なら年を省く
+function formatDateLabel(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return d.toLocaleDateString("ja-JP", {
+    year: sameYear ? undefined : "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+  });
 }
 
 function formatTime(iso: string): string {

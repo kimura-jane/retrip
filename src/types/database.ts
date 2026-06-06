@@ -50,6 +50,14 @@ export type ChatThemeColor = "coral" | "sage" | "ink" | "paper" | "sora";
 
 export type ChatFont = "sans" | "serif" | "display" | "rounded";
 
+export type AgeGroup =
+  | "twenties"
+  | "thirties"
+  | "forties"
+  | "fifties"
+  | "sixties_plus"
+  | "no_answer";
+
 // ===========================================
 // 集合場所（meeting_points jsonb の構造）
 // ===========================================
@@ -529,6 +537,52 @@ export interface Database {
         };
         Relationships: [];
       };
+
+      tour_introductions: {
+        Row: {
+          id: string;
+          tour_id: string;
+          user_id: string;
+          nickname: string;
+          age_group: AgeGroup;
+          gender: Gender;
+          occupation: string | null;
+          hobbies: string | null;
+          spot: string | null;
+          message: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          tour_id: string;
+          user_id: string;
+          nickname: string;
+          age_group?: AgeGroup;
+          gender?: Gender;
+          occupation?: string | null;
+          hobbies?: string | null;
+          spot?: string | null;
+          message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          tour_id?: string;
+          user_id?: string;
+          nickname?: string;
+          age_group?: AgeGroup;
+          gender?: Gender;
+          occupation?: string | null;
+          hobbies?: string | null;
+          spot?: string | null;
+          message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -543,6 +597,7 @@ export interface Database {
       booking_status: BookingStatus;
       chat_room_type: ChatRoomType;
       chat_member_role: ChatMemberRole;
+      age_group: AgeGroup;
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -576,3 +631,4 @@ export type Payment = Tables<"payments">;
 export type AdminLog = Tables<"admin_logs">;
 export type Poll = Tables<"polls">;
 export type PollVote = Tables<"poll_votes">;
+export type TourIntroduction = Tables<"tour_introductions">;

@@ -26,6 +26,7 @@ import { MessageMenu, type MessageMenuAction } from "@/features/chat/message-men
 import { getTheme, getFont } from "@/features/chat/theme";
 import { PollBubble, type PollData } from "./poll-bubble";
 import { PollComposer } from "./poll-composer";
+import IntroPanel, { type IntroRow } from "./intro-panel";
 import type { ChatThemeColor, ChatFont } from "@/types/database";
 
 type MessageRow = {
@@ -66,6 +67,8 @@ type Props = {
   senders: Record<string, SenderInfo>;
   themeColor: ChatThemeColor;
   chatFont: ChatFont;
+  tourId: string | null;
+  intros: IntroRow[];
 };
 
 export function ChatRoomView({
@@ -80,6 +83,8 @@ export function ChatRoomView({
   senders: initialSenders,
   themeColor,
   chatFont,
+  tourId,
+  intros,
 }: Props) {
   const [messages, setMessages] = useState<MessageRow[]>(initialMessages);
   const [reactions, setReactions] = useState<ReactionRow[]>(initialReactions);
@@ -496,6 +501,17 @@ export function ChatRoomView({
           {roomName}
         </h1>
       </div>
+
+      {/* ツアー限定プロフィールの上部バー（tour room のみ） */}
+      {tourId && (
+        <IntroPanel
+          tourId={tourId}
+          roomId={roomId}
+          currentUserId={currentUserId}
+          intros={intros}
+          senders={senders}
+        />
+      )}
 
       {/* メッセージリスト */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 overscroll-contain">

@@ -129,3 +129,31 @@ export async function chatUnbanAction(userId: string): Promise<BanResult> {
   revalidatePath("/admin/tours");
   return { success: true };
 }
+
+// ============================================
+// 管理者によるメッセージ削除（他人のメッセージも論理削除可）
+// 既存の deleteMessageAction は user_id 縛りがあり他人のメッセージを消せないため、
+// admin 専用に分離する。RLS の messages_delete_admin（admin は他人の行も更新可）に依存。
+// ============================================
+export async function adminDeleteMessageAction(
+  messageId: string,
+  roomId: string
+): Promise<BanResult> {
+  const guard = await assertAdmin();
+  if (!guard.ok) return { success: false, error: guard.error };
+
+  const { error } = await guard.supabase
+    .from("messages")
+    .update({
+      deleted_at: new Date().toISOString(),
+      content: "",
+      media_url: null,
+      media_type: null,
+    } as never)
+    .eq("id", messageId);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath(`/chat/${roomId}`);
+  return { success: true };
+}

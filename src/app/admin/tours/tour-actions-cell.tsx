@@ -39,6 +39,12 @@ export function TourActionsCell({ tourId }: { tourId: string }) {
         >
           編集
         </Link>
+        <Link
+          href={`/admin/tours/${tourId}/bookings`}
+          className="flex-1 sm:flex-none text-center text-[12px] tracking-[0.1em] text-ink-600 border border-line bg-paper-100 hover:bg-paper-200 px-3 py-2 transition"
+        >
+          予約者
+        </Link>
         <button
           type="button"
           onClick={handleDuplicate}

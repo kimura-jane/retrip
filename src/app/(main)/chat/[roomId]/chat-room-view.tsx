@@ -20,6 +20,11 @@ import {
   removeReactionAction,
   uploadChatMediaAction,
 } from "@/features/chat/actions";
+import {
+  chatBanAction,
+  accessBanAction,
+  adminDeleteMessageAction,
+} from "@/features/admin/ban-actions";
 import { deletePollAction } from "@/features/poll/actions";
 import { ReactionPicker } from "@/features/chat/reaction-picker";
 import { MessageMenu, type MessageMenuAction } from "@/features/chat/message-menu";
@@ -100,6 +105,10 @@ export function ChatRoomView({
   const [pickerFor, setPickerFor] = useState<MessageRow | null>(null);
   const [showPollComposer, setShowPollComposer] = useState(false);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  // 管理者がアバターをタップしたときに開く管理パネルの対象ユーザー
+  const [adminPanelUserId, setAdminPanelUserId] = useState<string | null>(null);
+  // 管理者が他人のメッセージを削除する際の確認対象
+  const [adminDeleteFor, setAdminDeleteFor] = useState<MessageRow | null>(null);
   const [uploadPreview, setUploadPreview] = useState<{
     url: string;
     mediaType: "image" | "video" | "gif";
@@ -431,6 +440,35 @@ export function ChatRoomView({
     }
   };
 
+  // 長押し時の分岐：管理者かつ他人のメッセージなら admin 削除確認を出す。
+  // それ以外（自分のメッセージ or 一般ユーザー）は通常の MessageMenu を出す。
+  const handleLongPress = (msg: MessageRow) => {
+    if (isAdmin && msg.user_id !== currentUserId && !msg.deleted_at) {
+      setAdminDeleteFor(msg);
+    } else {
+      setMenuFor(msg);
+    }
+  };
+
+  // アバタータップ時の分岐：管理者かつ他人なら管理パネル、それ以外はプロフィール。
+  // 自分自身のアバターは常にプロフィール。tour room 以外は従来どおり無効。
+  const handleAvatarClick = (userId: string) => {
+    if (isAdmin && userId !== currentUserId) {
+      setAdminPanelUserId(userId);
+    } else {
+      setProfileUserId(userId);
+    }
+  };
+
+  // 管理者の他人メッセージ削除を実行
+  const runAdminDelete = (msg: MessageRow) => {
+    setAdminDeleteFor(null);
+    startTransition(async () => {
+      const result = await adminDeleteMessageAction(msg.id, roomId);
+      if (!result.success) setError(result.error);
+    });
+  };
+
   const handleEmojiSelect = (emoji: string) => {
     if (!pickerFor) return;
     const targetId = pickerFor.id;
@@ -489,6 +527,11 @@ export function ChatRoomView({
   const profileSender = profileUserId ? senders[profileUserId] : undefined;
   const profileFallbackName =
     profileSender?.display_name ?? "ユーザー";
+
+  // 管理パネル用：対象ユーザーの表示名
+  const adminPanelName = adminPanelUserId
+    ? senders[adminPanelUserId]?.display_name ?? "ユーザー"
+    : "ユーザー";
 
   return (
     <div
@@ -597,11 +640,13 @@ export function ChatRoomView({
                   replyToSender={replyToSender}
                   highlighted={highlightId === msg.id}
                   themeMyBubble={`${theme.myBubbleBg} ${theme.myBubbleText}`}
-                  onLongPress={() => setMenuFor(msg)}
+                  onLongPress={() => handleLongPress(msg)}
                   onReactionClick={(emoji) => toggleReaction(msg.id, emoji)}
                   onReplyClick={() => replyToMsg && jumpToMessage(replyToMsg.id)}
                   onAvatarClick={
-                    tourId ? () => setProfileUserId(msg.user_id) : undefined
+                    tourId || isAdmin
+                      ? () => handleAvatarClick(msg.user_id)
+                      : undefined
                   }
                 />
               </div>
@@ -804,13 +849,33 @@ export function ChatRoomView({
         />
       )}
 
-      {/* アバタータップで開く単体プロフィール（tour room のみ） */}
+      {/* アバタータップで開く単体プロフィール（一般ユーザー or 自分） */}
       {profileUserId && (
         <ProfileModal
           intro={profileIntro}
           sender={profileSender}
           fallbackName={profileFallbackName}
           onClose={() => setProfileUserId(null)}
+        />
+      )}
+
+      {/* 管理者がアバターをタップしたときの管理パネル */}
+      {adminPanelUserId && (
+        <AdminUserPanel
+          userId={adminPanelUserId}
+          displayName={adminPanelName}
+          onClose={() => setAdminPanelUserId(null)}
+          onError={(msg) => setError(msg)}
+        />
+      )}
+
+      {/* 管理者による他人メッセージ削除の確認 */}
+      {adminDeleteFor && (
+        <AdminDeleteConfirm
+          message={adminDeleteFor}
+          senderName={senders[adminDeleteFor.user_id]?.display_name ?? "ユーザー"}
+          onConfirm={() => runAdminDelete(adminDeleteFor)}
+          onClose={() => setAdminDeleteFor(null)}
         />
       )}
     </div>
@@ -1009,6 +1074,161 @@ function MessageBubble({
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// 管理者がアバターをタップしたときに開くパネル（チャットBAN・アクセスBAN）
+function AdminUserPanel({
+  userId,
+  displayName,
+  onClose,
+  onError,
+}: {
+  userId: string;
+  displayName: string;
+  onClose: () => void;
+  onError: (msg: string) => void;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [confirming, setConfirming] = useState<"chatBan" | "accessBan" | null>(
+    null
+  );
+  const [done, setDone] = useState<string | null>(null);
+
+  const run = (
+    key: "chatBan" | "accessBan",
+    action: () => Promise<{ success: boolean; error?: string }>,
+    doneText: string
+  ) => {
+    if (confirming !== key) {
+      setConfirming(key);
+      setDone(null);
+      return;
+    }
+    setConfirming(null);
+    startTransition(async () => {
+      const res = await action();
+      if (res.success) {
+        setDone(doneText);
+        // BAN の効果（メンバー退出など）を確実に反映するため全リロード
+        window.location.href = window.location.href;
+      } else {
+        onError(res.error ?? "操作に失敗しました");
+        onClose();
+      }
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 animate-fade-in">
+      <div className="w-full sm:w-80 bg-white sm:rounded-2xl rounded-t-2xl shadow-xl overflow-hidden pb-[env(safe-area-inset-bottom)]">
+        <div className="px-5 py-4 border-b border-[#E5E0D8]">
+          <p className="font-display italic uppercase tracking-widest2 text-[10px] text-coral-700">
+            Moderation
+          </p>
+          <p className="text-sm text-ink-900 mt-1 tracking-wide">{displayName}</p>
+        </div>
+
+        <div className="px-5 py-4 space-y-3">
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() =>
+              run(
+                "chatBan",
+                () => chatBanAction(userId),
+                "チャットBANしました"
+              )
+            }
+            className="w-full text-[13px] tracking-[0.08em] text-coral-700 border border-line bg-paper-100 hover:bg-coral-50 px-4 py-3 transition disabled:opacity-50"
+          >
+            {confirming === "chatBan"
+              ? "もう一度押すと実行"
+              : "チャットBAN（全チャット締め出し・予約は可）"}
+          </button>
+
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() =>
+              run(
+                "accessBan",
+                () => accessBanAction(userId),
+                "アクセスBANしました"
+              )
+            }
+            className="w-full text-[13px] tracking-[0.08em] text-coral-700 border border-line bg-paper-100 hover:bg-coral-50 px-4 py-3 transition disabled:opacity-50"
+          >
+            {confirming === "accessBan"
+              ? "もう一度押すと実行"
+              : "アクセスBAN（予約・チャットすべて不可）"}
+          </button>
+
+          {confirming && (
+            <p className="text-[11px] text-coral-700 font-light">
+              確認のためもう一度同じボタンを押してください。
+            </p>
+          )}
+          {done && <p className="text-[12px] text-sage-700">{done}</p>}
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isPending}
+          className="w-full px-4 py-3 text-sm text-ink-500 border-t border-[#E5E0D8] hover:bg-paper-50 transition disabled:opacity-50"
+        >
+          閉じる
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// 管理者が他人のメッセージを削除する際の確認モーダル
+function AdminDeleteConfirm({
+  message,
+  senderName,
+  onConfirm,
+  onClose,
+}: {
+  message: MessageRow;
+  senderName: string;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const preview =
+    message.content || (message.media_type ? "[メディア]" : "（空のメッセージ）");
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 animate-fade-in">
+      <div className="w-full sm:w-80 bg-white sm:rounded-2xl rounded-t-2xl shadow-xl overflow-hidden pb-[env(safe-area-inset-bottom)]">
+        <div className="px-5 py-4 border-b border-[#E5E0D8]">
+          <p className="font-display italic uppercase tracking-widest2 text-[10px] text-coral-700">
+            Delete message
+          </p>
+          <p className="text-[11px] text-ink-500 mt-1 font-light">
+            {senderName} の投稿
+          </p>
+          <p className="text-sm text-ink-900 mt-2 break-words whitespace-pre-wrap line-clamp-4">
+            {preview}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="w-full px-4 py-3.5 text-sm text-coral-700 hover:bg-coral-50 transition"
+        >
+          このメッセージを削除する
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full px-4 py-3 text-sm text-ink-500 border-t border-[#E5E0D8] hover:bg-paper-50 transition"
+        >
+          キャンセル
+        </button>
       </div>
     </div>
   );

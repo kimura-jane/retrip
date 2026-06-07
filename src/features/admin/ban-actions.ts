@@ -33,13 +33,14 @@ async function leaveAllRooms(
 
 // 対象ユーザーが admin かどうか（admin を BAN させない安全弁）
 async function isTargetAdmin(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  _supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
 ): Promise<boolean> {
-  // users テーブルには role が無いため、auth 側の判定はできない。
-  // 運用上、admin（草間さん/運営太郎）の user_id を直接ガードする。
-  const ADMIN_IDS = [
-    // 必要に応じて admin の user_id を追加する
+  // users テーブルには role が無いため、auth 側の判定はここではできない。
+  // 運用上、admin の user_id を直接ガードする。
+  // 運営太郎の user_id が分かったら、この配列に追加すること。
+  const ADMIN_IDS: string[] = [
+    "3063d0a7-589b-4c84-805d-b91296e42e7b", // 草間縄文
   ];
   return ADMIN_IDS.includes(userId);
 }

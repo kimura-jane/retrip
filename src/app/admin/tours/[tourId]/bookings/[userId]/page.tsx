@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Gender } from "@/types/database";
+import { BanControls } from "./ban-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,8 @@ type UserRow = {
   id_verified_at: string | null;
   id_rejected_at: string | null;
   id_rejection_reason: string | null;
+  banned: boolean;
+  chat_banned: boolean;
   created_at: string;
 };
 
@@ -58,7 +61,7 @@ export default async function AdminBookingUserDetailPage({
   const { data: userData } = await supabase
     .from("users")
     .select(
-      "id, display_name, birth_date, gender, bio, avatar_url, id_document_url, id_verified, id_verified_at, id_rejected_at, id_rejection_reason, created_at"
+      "id, display_name, birth_date, gender, bio, avatar_url, id_document_url, id_verified, id_verified_at, id_rejected_at, id_rejection_reason, banned, chat_banned, created_at"
     )
     .eq("id", userId)
     .maybeSingle<UserRow>();
@@ -129,6 +132,17 @@ export default async function AdminBookingUserDetailPage({
           ← 予約者一覧
         </Link>
       </div>
+
+      {/* BAN状態の警告表示 */}
+      {(userData.banned || userData.chat_banned) && (
+        <div className="border border-coral-300 bg-coral-50 p-4">
+          <p className="text-[13px] text-coral-700 font-medium">
+            {userData.banned
+              ? "このユーザーはアクセスBAN中です（予約・チャットすべて不可）"
+              : "このユーザーはチャットBAN中です（チャットのみ不可）"}
+          </p>
+        </div>
+      )}
 
       {/* プロフィール */}
       <section className="border border-line bg-paper-50 p-5 space-y-5">
@@ -236,6 +250,18 @@ export default async function AdminBookingUserDetailPage({
             </p>
           )}
         </div>
+      </section>
+
+      {/* BAN操作 */}
+      <section className="border border-line bg-paper-50 p-5 space-y-4">
+        <p className="font-display italic text-[12px] tracking-widest2 uppercase text-coral-700">
+          Moderation
+        </p>
+        <BanControls
+          userId={userData.id}
+          isBanned={userData.banned}
+          isChatBanned={userData.chat_banned}
+        />
       </section>
     </div>
   );

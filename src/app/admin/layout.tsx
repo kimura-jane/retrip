@@ -27,7 +27,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
               Admin
             </span>
           </Link>
-          <nav className="flex items-center gap-6">
+          <nav className="flex items-center gap-5 sm:gap-6">
+            <Link
+              href="/admin"
+              className="text-[12px] tracking-[0.15em] uppercase text-ink-600 hover:text-coral-700 transition"
+            >
+              Top
+            </Link>
             <Link
               href="/admin/tours"
               className="text-[12px] tracking-[0.15em] uppercase text-ink-600 hover:text-coral-700 transition"
@@ -38,7 +44,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
               href="/admin/verifications"
               className="text-[12px] tracking-[0.15em] uppercase text-ink-600 hover:text-coral-700 transition"
             >
-              Verifications
+              Verify
             </Link>
             <Link
               href="/"

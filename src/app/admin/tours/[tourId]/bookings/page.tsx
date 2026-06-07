@@ -77,53 +77,61 @@ export default async function AdminTourBookingsPage({
               minute: "2-digit",
             });
             return (
-              <div
+              <Link
                 key={b.bookingId}
-                className="border border-line bg-paper-50 p-4 flex gap-4 items-start"
+                href={`/admin/tours/${tourId}/bookings/${b.userId}`}
+                className="block border border-line bg-paper-50 p-4 hover:bg-paper-100 transition"
               >
-                {/* アバター */}
-                <div className="w-12 h-12 flex-shrink-0 rounded-full bg-paper-200 overflow-hidden">
-                  {b.avatarUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={b.avatarUrl}
-                      alt={b.displayName}
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                </div>
-
-                {/* 情報 */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-serif text-base tracking-[0.04em] text-ink-900">
-                      {b.displayName}
-                    </span>
-                    {b.idVerified ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-sage-700 font-light">
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-sage-500" />
-                        本人確認済み
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-ink-500 font-light">
-                        未確認
-                      </span>
+                <div className="flex gap-4 items-start">
+                  {/* アバター */}
+                  <div className="w-12 h-12 flex-shrink-0 rounded-full bg-paper-200 overflow-hidden">
+                    {b.avatarUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={b.avatarUrl}
+                        alt={b.displayName}
+                        className="w-full h-full object-cover"
+                      />
                     )}
-                    <span
-                      className={`inline-block text-[10px] tracking-[0.15em] uppercase px-2 py-0.5 font-display italic ${STATUS_COLOR[b.status]}`}
-                    >
-                      {STATUS_LABEL[b.status]}
-                    </span>
                   </div>
 
-                  <div className="mt-2 text-[12px] text-ink-500 font-light leading-relaxed">
-                    <div>集合: {b.meetingPointName}</div>
-                    <div>
-                      支払い: ¥{b.amountPaid.toLocaleString()} ／ {dateLabel}
+                  {/* 情報 */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-serif text-base tracking-[0.04em] text-ink-900">
+                        {b.displayName}
+                      </span>
+                      {b.idVerified ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-sage-700 font-light">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-sage-500" />
+                          本人確認済み
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-ink-500 font-light">
+                          未確認
+                        </span>
+                      )}
+                      <span
+                        className={`inline-block text-[10px] tracking-[0.15em] uppercase px-2 py-0.5 font-display italic ${STATUS_COLOR[b.status]}`}
+                      >
+                        {STATUS_LABEL[b.status]}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 text-[12px] text-ink-500 font-light leading-relaxed">
+                      <div>集合: {b.meetingPointName}</div>
+                      <div>
+                        支払い: ¥{b.amountPaid.toLocaleString()} ／ {dateLabel}
+                      </div>
                     </div>
                   </div>
+
+                  {/* 矢印 */}
+                  <span className="flex-shrink-0 self-center font-display italic text-xs text-ink-500">
+                    詳細 →
+                  </span>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

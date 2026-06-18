@@ -38,9 +38,9 @@ async function isTargetAdmin(
 ): Promise<boolean> {
   // users テーブルには role が無いため、auth 側の判定はここではできない。
   // 運用上、admin の user_id を直接ガードする。
-  // 運営太郎の user_id が分かったら、この配列に追加すること。
   const ADMIN_IDS: string[] = [
-    "3063d0a7-589b-4c84-805d-b91296e42e7b", // 草間縄文
+    "3063d0a7-589b-4c84-805d-b91296e42e7b", // 草間縄文 (la.kofu@gmail.com)
+    "12ea9909-cd7b-497e-aecc-256c9585d893", // 運営太郎 (lakokubunji@gmail.com)
   ];
   return ADMIN_IDS.includes(userId);
 }

@@ -103,6 +103,12 @@ export interface Database {
           chat_theme_color: ChatThemeColor;
           chat_font: ChatFont;
           created_at: string;
+          banned: boolean;
+          banned_at: string | null;
+          chat_banned: boolean;
+          chat_banned_at: string | null;
+          withdrawn: boolean;
+          withdrawn_at: string | null;
         };
         Insert: {
           id: string;
@@ -119,6 +125,12 @@ export interface Database {
           chat_theme_color?: ChatThemeColor;
           chat_font?: ChatFont;
           created_at?: string;
+          banned?: boolean;
+          banned_at?: string | null;
+          chat_banned?: boolean;
+          chat_banned_at?: string | null;
+          withdrawn?: boolean;
+          withdrawn_at?: string | null;
         };
         Update: {
           id?: string;
@@ -135,6 +147,12 @@ export interface Database {
           chat_theme_color?: ChatThemeColor;
           chat_font?: ChatFont;
           created_at?: string;
+          banned?: boolean;
+          banned_at?: string | null;
+          chat_banned?: boolean;
+          chat_banned_at?: string | null;
+          withdrawn?: boolean;
+          withdrawn_at?: string | null;
         };
         Relationships: [];
       };
@@ -583,6 +601,28 @@ export interface Database {
         };
         Relationships: [];
       };
+
+      withdrawals: {
+        Row: {
+          id: string;
+          user_id: string;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -632,3 +672,4 @@ export type AdminLog = Tables<"admin_logs">;
 export type Poll = Tables<"polls">;
 export type PollVote = Tables<"poll_votes">;
 export type TourIntroduction = Tables<"tour_introductions">;
+export type Withdrawal = Tables<"withdrawals">;

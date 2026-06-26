@@ -19,6 +19,7 @@ import {
   addReactionAction,
   removeReactionAction,
   uploadChatMediaAction,
+  markRoomReadAction,
 } from "@/features/chat/actions";
 import {
   chatBanAction,
@@ -151,6 +152,13 @@ export function ChatRoomView({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "auto" });
   }, [messages.length, viewportHeight]);
+
+  // ルーム入室時に既読化（last_read_at を now() に更新する）。
+  // ルーム切替時にもう一度叩かれる。LINE 的挙動：開いている間の新着分は
+  // 次回入室時にまとめて既読化される。
+  useEffect(() => {
+    void markRoomReadAction(roomId);
+  }, [roomId]);
 
   // poll を最新化する（投票の楽観更新後やリアルタイム反映用）
   const fetchPolls = async (pollIds: string[]) => {

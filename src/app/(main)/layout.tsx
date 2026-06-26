@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getUnreadCountsAction } from "@/features/chat/actions";
+import { BottomNav } from "./_components/bottom-nav";
 
 export default async function MainLayout({
   children,
@@ -11,40 +13,52 @@ export default async function MainLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // 未読合計（ログイン時のみ）
+  let totalUnread = 0;
+  if (user) {
+    const counts = await getUnreadCountsAction();
+    totalUnread = Object.values(counts).reduce(
+      (sum, n) => sum + (typeof n === "number" ? n : 0),
+      0
+    );
+  }
+
   return (
     <div className="min-h-screen bg-paper-100 text-ink-900">
+      {/* 上部ヘッダー：ロゴのみ。未ログイン時のみ Login/Sign up を右側に出す */}
       <header className="sticky top-0 z-40 bg-paper-100/80 backdrop-blur border-b border-line">
         <div className="mx-auto max-w-7xl px-6 lg:px-10 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-baseline gap-2 group">
-            <span className="font-display text-2xl tracking-wide text-ink-900">Re:Trip</span>
+            <span className="font-display text-2xl tracking-wide text-ink-900">
+              Re:Trip
+            </span>
             <span className="font-display italic text-[11px] tracking-widest2 text-ink-500 hidden sm:inline">
               re:trip
             </span>
           </Link>
-          <nav className="flex items-center gap-6 md:gap-8 text-[12px] tracking-widest2 uppercase text-ink-600">
-            <Link href="/" className="hover:text-coral-500 transition-colors">Journeys</Link>
-            {user ? (
-              <>
-                <Link href="/chat" className="hover:text-coral-500 transition-colors">Chat</Link>
-                <Link href="/mypage" className="hover:text-coral-500 transition-colors">Mypage</Link>
-              </>
-            ) : (
-              <>
-                <Link href="/login" className="hover:text-coral-500 transition-colors">Login</Link>
-                <Link
-                  href="/signup"
-                  className="px-4 py-2 border border-ink-900 text-ink-900 hover:bg-ink-900 hover:text-paper-100 transition-colors"
-                >
-                  Sign up
-                </Link>
-              </>
-            )}
-          </nav>
+          {!user && (
+            <nav className="flex items-center gap-6 md:gap-8 text-[12px] tracking-widest2 uppercase text-ink-600">
+              <Link
+                href="/login"
+                className="hover:text-coral-500 transition-colors"
+              >
+                Login
+              </Link>
+              <Link
+                href="/signup"
+                className="px-4 py-2 border border-ink-900 text-ink-900 hover:bg-ink-900 hover:text-paper-100 transition-colors"
+              >
+                Sign up
+              </Link>
+            </nav>
+          )}
         </div>
       </header>
 
-      <main>{children}</main>
+      {/* 下部ナビ分の余白を確保（pb-[env(safe-area-inset-bottom)] + 64px くらい） */}
+      <main className={user ? "pb-24" : ""}>{children}</main>
 
+      {/* フッター（PCで主に表示用、モバイルでも下部ナビの下に出る） */}
       <footer className="mt-24 border-t border-line bg-paper-50">
         <div className="mx-auto max-w-7xl px-6 lg:px-10 py-12 flex flex-col md:flex-row md:items-center md:justify-between gap-6 text-[12px] text-ink-500 font-light">
           <div className="font-display text-2xl text-ink-900">Re:Trip</div>
@@ -53,6 +67,9 @@ export default async function MainLayout({
           </div>
         </div>
       </footer>
+
+      {/* 下部タブバー（ログイン時のみ） */}
+      {user && <BottomNav unreadTotal={totalUnread} />}
     </div>
   );
 }

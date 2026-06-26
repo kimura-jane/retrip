@@ -7,9 +7,9 @@ export type ChatActionResult =
   | { success: true }
   | { success: false; error: string };
 
-// ===========================================
+// =========================================
 // メッセージ送信
-// ===========================================
+// =========================================
 
 export async function sendMessageAction(
   roomId: string,
@@ -59,9 +59,9 @@ export async function sendMessageAction(
   return { success: true };
 }
 
-// ===========================================
+// =========================================
 // メッセージ編集
-// ===========================================
+// =========================================
 
 export async function editMessageAction(
   messageId: string,
@@ -101,9 +101,9 @@ export async function editMessageAction(
   return { success: true };
 }
 
-// ===========================================
+// =========================================
 // メッセージ削除（送信取り消し）
-// ===========================================
+// =========================================
 
 export async function deleteMessageAction(
   messageId: string,
@@ -136,9 +136,9 @@ export async function deleteMessageAction(
   return { success: true };
 }
 
-// ===========================================
+// =========================================
 // リアクション追加
-// ===========================================
+// =========================================
 
 export async function addReactionAction(
   messageId: string,
@@ -164,7 +164,7 @@ export async function addReactionAction(
   } as never);
 
   if (error) {
-    // 既に同じ絵文字を押していた場合(unique制約違反)はエラーにしない
+    // 既に同じ絵文字を押している場合(unique制約違反)はエラーにしない
     if (error.code === "23505") {
       return { success: true };
     }
@@ -175,9 +175,9 @@ export async function addReactionAction(
   return { success: true };
 }
 
-// ===========================================
+// =========================================
 // リアクション削除（トグル）
-// ===========================================
+// =========================================
 
 export async function removeReactionAction(
   messageId: string,
@@ -207,9 +207,9 @@ export async function removeReactionAction(
   return { success: true };
 }
 
-// ===========================================
+// =========================================
 // メディアアップロード（画像・動画・GIF）
-// ===========================================
+// =========================================
 
 export async function uploadChatMediaAction(
   formData: FormData
@@ -286,4 +286,50 @@ export async function uploadChatMediaAction(
     url: publicUrlData.publicUrl,
     mediaType,
   };
+}
+
+// =========================================
+// ルーム既読化（last_read_at を now() に更新）
+// =========================================
+
+export async function markRoomReadAction(
+  roomId: string
+): Promise<ChatActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { success: false, error: "ログインが必要です" };
+  }
+
+  const { error } = await supabase.rpc("mark_room_read", {
+    p_room_id: roomId,
+  } as never);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+// =========================================
+// 未読カウント取得（{ roomId: count } を返す）
+// =========================================
+
+export async function getUnreadCountsAction(): Promise<
+  Record<string, number>
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return {};
+
+  const { data, error } = await supabase.rpc("get_unread_counts");
+  if (error || !data) return {};
+
+  // RPC は jsonb（{ uuid: number } 形）を返す
+  return data as unknown as Record<string, number>;
 }

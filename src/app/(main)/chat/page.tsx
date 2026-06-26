@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getUnreadCountsAction } from "@/features/chat/actions";
 
 type RoomRow = {
   id: string;
@@ -15,6 +16,16 @@ type TourRoomRow = {
   name: string;
   tour_id: string | null;
 };
+
+function UnreadBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  const label = count > 99 ? "99+" : String(count);
+  return (
+    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-coral-500 px-1.5 text-[11px] font-semibold text-paper-50 leading-none">
+      {label}
+    </span>
+  );
+}
 
 export default async function ChatListPage() {
   const supabase = await createClient();
@@ -56,6 +67,10 @@ export default async function ChatListPage() {
 
   const tourRooms = (tourRoomsData as TourRoomRow[] | null) ?? [];
 
+  // 未読カウント取得（RPC一発、{ roomId: count }）
+  const unreadCounts = await getUnreadCountsAction();
+  const getUnread = (roomId: string): number => unreadCounts[roomId] ?? 0;
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">
       {/* ページヘッダー */}
@@ -88,8 +103,11 @@ export default async function ChatListPage() {
                   <span className="font-serif text-lg text-ink-900 group-hover:text-coral-700 transition-colors">
                     {room.name}
                   </span>
-                  <span className="font-display italic text-xs text-ink-500 group-hover:text-coral-700 transition-colors">
-                    enter →
+                  <span className="flex items-center gap-3">
+                    <UnreadBadge count={getUnread(room.id)} />
+                    <span className="font-display italic text-xs text-ink-500 group-hover:text-coral-700 transition-colors">
+                      enter →
+                    </span>
                   </span>
                 </Link>
               </li>
@@ -113,8 +131,11 @@ export default async function ChatListPage() {
                 <span className="font-serif text-lg text-ink-900 group-hover:text-coral-700 transition-colors">
                   {room.name}
                 </span>
-                <span className="font-display italic text-xs text-ink-500 group-hover:text-coral-700 transition-colors">
-                  enter →
+                <span className="flex items-center gap-3">
+                  <UnreadBadge count={getUnread(room.id)} />
+                  <span className="font-display italic text-xs text-ink-500 group-hover:text-coral-700 transition-colors">
+                    enter →
+                  </span>
                 </span>
               </Link>
             </li>
@@ -146,8 +167,11 @@ export default async function ChatListPage() {
                   <span className="font-serif text-lg text-ink-900 group-hover:text-coral-700 transition-colors">
                     {room.name}
                   </span>
-                  <span className="font-display italic text-xs text-ink-500 group-hover:text-coral-700 transition-colors">
-                    enter →
+                  <span className="flex items-center gap-3">
+                    <UnreadBadge count={getUnread(room.id)} />
+                    <span className="font-display italic text-xs text-ink-500 group-hover:text-coral-700 transition-colors">
+                      enter →
+                    </span>
                   </span>
                 </Link>
               </li>

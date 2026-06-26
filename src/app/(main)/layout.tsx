@@ -27,7 +27,6 @@ export default async function MainLayout({
               <>
                 <Link href="/chat" className="hover:text-coral-500 transition-colors">Chat</Link>
                 <Link href="/mypage" className="hover:text-coral-500 transition-colors">Mypage</Link>
-                <Link href="/settings" className="hover:text-coral-500 transition-colors">Settings</Link>
               </>
             ) : (
               <>

@@ -296,6 +296,7 @@ export interface Database {
           role: ChatMemberRole;
           joined_at: string;
           left_at: string | null;
+          last_read_at: string;
         };
         Insert: {
           room_id: string;
@@ -303,6 +304,7 @@ export interface Database {
           role?: ChatMemberRole;
           joined_at?: string;
           left_at?: string | null;
+          last_read_at?: string;
         };
         Update: {
           room_id?: string;
@@ -310,6 +312,7 @@ export interface Database {
           role?: ChatMemberRole;
           joined_at?: string;
           left_at?: string | null;
+          last_read_at?: string;
         };
         Relationships: [];
       };
@@ -628,7 +631,14 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      get_unread_counts: {
+        Args: Record<string, never>;
+        Returns: Record<string, number>;
+      };
+      mark_room_read: {
+        Args: { p_room_id: string };
+        Returns: void;
+      };
     };
     Enums: {
       gender: Gender;

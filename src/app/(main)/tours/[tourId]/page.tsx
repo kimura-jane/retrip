@@ -70,6 +70,13 @@ export default async function TourDetailPage({ params }: { params: Params }) {
         })
       : "";
 
+  // 日帰り（day_trip）なら return_date は出さない。
+  // overnight でかつ departure_date と異なる場合のみ Return を表示する。
+  const showReturnDate =
+    tour.tour_type === "overnight" &&
+    !!tour.return_date &&
+    tour.return_date !== tour.departure_date;
+
   return (
     <>
       {/* SAMPLE 帯 */}
@@ -116,7 +123,7 @@ export default async function TourDetailPage({ params }: { params: Params }) {
             {tour.destination}
             <span className="mx-3">·</span>
             {fmt(tour.departure_date)}
-            {tour.return_date && tour.return_date !== tour.departure_date && (
+            {showReturnDate && (
               <>
                 <span className="mx-2">〜</span>
                 {fmt(tour.return_date)}
@@ -224,7 +231,7 @@ export default async function TourDetailPage({ params }: { params: Params }) {
                 <dt className="tracking-widest2 uppercase text-ink-500 font-display italic">Depart</dt>
                 <dd className="font-serif text-ink-900">{fmt(tour.departure_date)}</dd>
               </div>
-              {tour.return_date && tour.return_date !== tour.departure_date && (
+              {showReturnDate && (
                 <div className="grid grid-cols-[80px_1fr] gap-4">
                   <dt className="tracking-widest2 uppercase text-ink-500 font-display italic">Return</dt>
                   <dd className="font-serif text-ink-900">{fmt(tour.return_date)}</dd>

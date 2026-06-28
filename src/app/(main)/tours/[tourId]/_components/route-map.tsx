@@ -8,20 +8,24 @@ type Props = {
   meetingPoints: MeetingPoint[];
 };
 
+type GeoPoint = MeetingPoint & { lat: number; lng: number };
+
 export default function RouteMap({ meetingPoints }: Props) {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
 
   // lat/lng が両方ある点だけ抽出
-  const points = meetingPoints.filter(
-    (p): p is MeetingPoint & { lat: number; lng: number } =>
+  const points: GeoPoint[] = meetingPoints.filter(
+    (p): p is GeoPoint =>
       typeof p.lat === "number" && typeof p.lng === "number"
   );
 
   useEffect(() => {
     if (!mapContainer.current) return;
-    if (points.length === 0) return;
     if (mapRef.current) return; // 多重初期化防止
+
+    const first = points[0];
+    if (!first) return;
 
     const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
     if (!apiKey) {
@@ -32,7 +36,7 @@ export default function RouteMap({ meetingPoints }: Props) {
     const map = new maplibregl.Map({
       container: mapContainer.current,
       style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${apiKey}`,
-      center: [points[0].lng, points[0].lat],
+      center: [first.lng, first.lat],
       zoom: 8,
       attributionControl: false,
     });
@@ -51,9 +55,10 @@ export default function RouteMap({ meetingPoints }: Props) {
     map.on("load", () => {
       // ルートライン
       if (points.length >= 2) {
-        const coordinates = points.map(
-          (p) => [p.lng, p.lat] as [number, number]
-        );
+        const coordinates: [number, number][] = points.map((p) => [
+          p.lng,
+          p.lat,
+        ]);
         map.addSource("route", {
           type: "geojson",
           data: {

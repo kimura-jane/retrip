@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, MeetingPoint } from "@/types/database";
 import BookingPanel from "./booking-panel";
+import RouteMap from "./_components/route-map";
 
 type TourRow = Database["public"]["Tables"]["tours"]["Row"];
 
@@ -76,6 +77,11 @@ export default async function TourDetailPage({ params }: { params: Params }) {
     tour.tour_type === "overnight" &&
     !!tour.return_date &&
     tour.return_date !== tour.departure_date;
+
+  // 地図に表示する点が1つ以上あるか
+  const hasMapPoints = meetingPoints.some(
+    (p) => typeof p.lat === "number" && typeof p.lng === "number"
+  );
 
   return (
     <>
@@ -166,6 +172,17 @@ export default async function TourDetailPage({ params }: { params: Params }) {
               <p className="mt-3 text-[12px] font-light text-ink-500 leading-loose2">
                 新宿集合がメインですが、途中のサービスエリアでの乗車、現地合流もできます。解散も同じく途中下車・現地解散できます。
               </p>
+
+              {/* ルートマップ */}
+              {hasMapPoints && (
+                <div className="mt-8">
+                  <RouteMap meetingPoints={meetingPoints} />
+                  <p className="mt-3 text-[11px] font-light text-ink-500 leading-loose2">
+                    ※ 地図上の番号は集合・経由・現地の順序を示しています。実際の運行ルートとは異なる場合があります。
+                  </p>
+                </div>
+              )}
+
               <ul className="mt-8 space-y-6">
                 {meetingPoints.map((p, i) => {
                   const isMain = i === 0;

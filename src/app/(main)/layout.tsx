@@ -58,12 +58,46 @@ export default async function MainLayout({
       {/* 下部ナビ分の余白を確保（pb-[env(safe-area-inset-bottom)] + 64px くらい） */}
       <main className={user ? "pb-24" : ""}>{children}</main>
 
-      {/* フッター（PCで主に表示用、モバイルでも下部ナビの下に出る） */}
+      {/* フッター */}
       <footer className="mt-24 border-t border-line bg-paper-50">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10 py-12 flex flex-col md:flex-row md:items-center md:justify-between gap-6 text-[12px] text-ink-500 font-light">
-          <div className="font-display text-2xl text-ink-900">Re:Trip</div>
-          <div className="text-[11px] tracking-widest2 uppercase">
-            © {new Date().getFullYear()} Re:Trip
+        <div className="mx-auto max-w-7xl px-6 lg:px-10 py-12 space-y-10">
+          {/* リンク行 */}
+          <nav className="flex flex-wrap gap-x-6 gap-y-3 text-[11px] tracking-[0.15em] uppercase text-ink-500 font-light">
+            <Link href="/faq" className="hover:text-coral-700 transition-colors">
+              FAQ
+            </Link>
+            <Link
+              href="/contact"
+              className="hover:text-coral-700 transition-colors"
+            >
+              Contact
+            </Link>
+            <Link
+              href="/terms"
+              className="hover:text-coral-700 transition-colors"
+            >
+              Terms
+            </Link>
+            <Link
+              href="/privacy"
+              className="hover:text-coral-700 transition-colors"
+            >
+              Privacy
+            </Link>
+            <Link
+              href="/tokushoho"
+              className="hover:text-coral-700 transition-colors"
+            >
+              特定商取引法に基づく表記
+            </Link>
+          </nav>
+
+          {/* ロゴ + コピーライト */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-[12px] text-ink-500 font-light border-t border-line pt-8">
+            <div className="font-display text-2xl text-ink-900">Re:Trip</div>
+            <div className="text-[11px] tracking-widest2 uppercase">
+              © {new Date().getFullYear()} Re:Trip
+            </div>
           </div>
         </div>
       </footer>

@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Gender } from "@/types/database";
+import type { BookingStatus, Gender } from "@/types/database";
 import { BanControls } from "./ban-controls";
+import { CancelControls } from "./cancel-controls";
+import { getBookingByTourAndUserAction } from "@/features/booking/admin-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,22 @@ const GENDER_LABEL: Record<Gender, string> = {
   female: "女性",
   other: "その他",
   prefer_not_to_say: "無回答",
+};
+
+const BOOKING_STATUS_LABEL: Record<BookingStatus, string> = {
+  pending: "保留",
+  confirmed: "確定",
+  cancelled: "キャンセル",
+  attended: "参加済み",
+  no_show: "不参加",
+};
+
+const BOOKING_STATUS_COLOR: Record<BookingStatus, string> = {
+  pending: "bg-paper-200 text-ink-600",
+  confirmed: "bg-coral-100 text-coral-700",
+  cancelled: "bg-paper-200 text-ink-500",
+  attended: "bg-sage-100 text-sage-700",
+  no_show: "bg-paper-300 text-ink-600",
 };
 
 type UserRow = {
@@ -30,7 +48,6 @@ type UserRow = {
   created_at: string;
 };
 
-// 生年月日から満年齢を求める
 function calcAge(birthDate: string): number | null {
   const b = new Date(birthDate);
   if (isNaN(b.getTime())) return null;
@@ -41,7 +58,6 @@ function calcAge(birthDate: string): number | null {
   return age;
 }
 
-// id_document_url からストレージ内パスを抽出（verifications と同じロジック）
 function extractPath(url: string | null): string | null {
   if (!url) return null;
   const m = url.match(/\/id_documents\/(.+?)(?:\?|$)/);
@@ -70,13 +86,17 @@ export default async function AdminBookingUserDetailPage({
     notFound();
   }
 
-  // 本人確認画像の署名付きURL（private バケット）
+  // 予約情報を取得（キャンセル操作用）
+  const bookingResult = await getBookingByTourAndUserAction(tourId, userId);
+  const booking = bookingResult.success ? bookingResult.booking : null;
+
+  // 本人確認画像の署名付きURL
   let signedUrl: string | null = null;
   const path = extractPath(userData.id_document_url);
   if (path) {
     const { data: signed } = await supabase.storage
       .from("id_documents")
-      .createSignedUrl(path, 60 * 60); // 1時間
+      .createSignedUrl(path, 60 * 60);
     signedUrl = signed?.signedUrl ?? null;
   }
 
@@ -89,7 +109,6 @@ export default async function AdminBookingUserDetailPage({
       })
     : "-";
 
-  // 本人確認ステータスの判定
   let verifyStatus: { label: string; className: string };
   if (userData.id_verified) {
     verifyStatus = {
@@ -142,6 +161,65 @@ export default async function AdminBookingUserDetailPage({
               : "このユーザーはチャットBAN中です（チャットのみ不可）"}
           </p>
         </div>
+      )}
+
+      {/* 予約情報 */}
+      {booking && (
+        <section className="border border-line bg-paper-50 p-5 space-y-4">
+          <p className="font-display italic text-[12px] tracking-widest2 uppercase text-coral-700">
+            Booking
+          </p>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <span
+              className={`inline-block text-[10px] tracking-[0.15em] uppercase px-2 py-0.5 font-display italic ${BOOKING_STATUS_COLOR[booking.status]}`}
+            >
+              {BOOKING_STATUS_LABEL[booking.status]}
+            </span>
+            <span className="text-[12px] text-ink-500 font-light">
+              予約日:{" "}
+              {new Date(booking.bookedAt).toLocaleString("ja-JP", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px]">
+            <div>
+              <p className="text-[11px] text-ink-500 font-light">集合場所</p>
+              <p className="text-ink-900">{booking.meetingPointName}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-ink-500 font-light">支払額</p>
+              <p className="text-ink-900">
+                ¥{booking.amountPaid.toLocaleString()}
+              </p>
+            </div>
+            {booking.stripePaymentIntentId && (
+              <div className="sm:col-span-2">
+                <p className="text-[11px] text-ink-500 font-light">
+                  Stripe Payment Intent
+                </p>
+                <p className="text-ink-900 font-mono text-[11px] break-all">
+                  {booking.stripePaymentIntentId}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <CancelControls
+            tourId={tourId}
+            userId={userId}
+            bookingId={booking.bookingId}
+            status={booking.status}
+            amountPaid={booking.amountPaid}
+            hasPaymentIntent={!!booking.stripePaymentIntentId}
+          />
+        </section>
       )}
 
       {/* プロフィール */}

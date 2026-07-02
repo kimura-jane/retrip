@@ -11,6 +11,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   sendMessageAction,
@@ -125,6 +126,7 @@ export function ChatRoomView({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
 
   const theme = getTheme(themeColor);
   const font = getFont(chatFont);
@@ -156,9 +158,14 @@ export function ChatRoomView({
   // ルーム入室時に既読化（last_read_at を now() に更新する）。
   // ルーム切替時にもう一度叩かれる。LINE 的挙動：開いている間の新着分は
   // 次回入室時にまとめて既読化される。
+  // 既読化後は router.refresh() でサーバーコンポーネント（レイアウトの
+  // 未読バッジ集計を含む）を再取得させ、フッターの合計バッジを即時に更新する。
   useEffect(() => {
-    void markRoomReadAction(roomId);
-  }, [roomId]);
+    void (async () => {
+      await markRoomReadAction(roomId);
+      router.refresh();
+    })();
+  }, [roomId, router]);
 
   // poll を最新化する（投票の楽観更新後やリアルタイム反映用）
   const fetchPolls = async (pollIds: string[]) => {

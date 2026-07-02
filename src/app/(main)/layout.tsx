@@ -63,6 +63,14 @@ export default async function MainLayout({
         <div className="mx-auto max-w-7xl px-6 lg:px-10 py-12 space-y-10">
           {/* リンク行 */}
           <nav className="flex flex-wrap gap-x-6 gap-y-3 text-[11px] tracking-[0.15em] uppercase text-ink-500 font-light">
+            <a
+              href="https://kimura-jane.github.io/retrip-lp/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-coral-700 transition-colors"
+            >
+              About
+            </a>
             <Link href="/faq" className="hover:text-coral-700 transition-colors">
               FAQ
             </Link>

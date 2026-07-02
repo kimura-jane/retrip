@@ -19,6 +19,13 @@ export default async function AdminDashboardPage() {
     .from("tours")
     .select("id", { count: "exact", head: true });
 
+  // BAN 中の総数（アクセスBAN + チャットBAN、退会者は除外）
+  const { count: bannedCount } = await supabase
+    .from("users")
+    .select("id", { count: "exact", head: true })
+    .or("banned.eq.true,chat_banned.eq.true")
+    .neq("withdrawn", true);
+
   const cards = [
     {
       href: "/admin/tours",
@@ -40,6 +47,13 @@ export default async function AdminDashboardPage() {
       title: "本人確認",
       desc: "提出された本人確認書類の審査",
       meta: `${pendingCount ?? 0} 件 審査待ち`,
+    },
+    {
+      href: "/admin/users",
+      label: "Users",
+      title: "ユーザー管理",
+      desc: "BAN 済みユーザーの解除・全ユーザーの確認",
+      meta: `${bannedCount ?? 0} 件 BAN 中`,
     },
   ];
 

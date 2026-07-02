@@ -12,6 +12,7 @@ export default function ChatRoomLayout({ children }: { children: ReactNode }) {
           overscroll-behavior: none;
         }
         footer { display: none !important; }
+        [data-bottom-nav] { display: none !important; }
       `}</style>
       <div className="-mx-6 -my-8">{children}</div>
     </>

@@ -37,18 +37,18 @@ export default async function MainLayout({
             </span>
           </Link>
           {!user && (
-            <nav className="flex items-center gap-6 md:gap-8 text-[12px] tracking-widest2 uppercase text-ink-600">
+            <nav className="flex items-center gap-6 md:gap-8 text-[12px] text-ink-600">
               <Link
                 href="/login"
                 className="hover:text-coral-500 transition-colors"
               >
-                Login
+                ログイン
               </Link>
               <Link
                 href="/signup"
                 className="px-4 py-2 border border-ink-900 text-ink-900 hover:bg-ink-900 hover:text-paper-100 transition-colors"
               >
-                Sign up
+                会員登録
               </Link>
             </nav>
           )}
@@ -62,35 +62,35 @@ export default async function MainLayout({
       <footer className="mt-24 border-t border-line bg-paper-50">
         <div className="mx-auto max-w-7xl px-6 lg:px-10 py-12 space-y-10">
           {/* リンク行 */}
-          <nav className="flex flex-wrap gap-x-6 gap-y-3 text-[11px] tracking-[0.15em] uppercase text-ink-500 font-light">
+          <nav className="flex flex-wrap gap-x-6 gap-y-3 text-[12px] text-ink-500 font-light">
             <a
               href="https://kimura-jane.github.io/retrip-lp/"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-coral-700 transition-colors"
             >
-              About
+              Re:Trip について
             </a>
             <Link href="/faq" className="hover:text-coral-700 transition-colors">
-              FAQ
+              よくある質問
             </Link>
             <Link
               href="/contact"
               className="hover:text-coral-700 transition-colors"
             >
-              Contact
+              お問い合わせ
             </Link>
             <Link
               href="/terms"
               className="hover:text-coral-700 transition-colors"
             >
-              Terms
+              利用規約
             </Link>
             <Link
               href="/privacy"
               className="hover:text-coral-700 transition-colors"
             >
-              Privacy
+              プライバシー
             </Link>
             <Link
               href="/tokushoho"
@@ -103,7 +103,7 @@ export default async function MainLayout({
           {/* ロゴ + コピーライト */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-[12px] text-ink-500 font-light border-t border-line pt-8">
             <div className="font-display text-2xl text-ink-900">Re:Trip</div>
-            <div className="text-[11px] tracking-widest2 uppercase">
+            <div className="text-[11px] font-light">
               © {new Date().getFullYear()} Re:Trip
             </div>
           </div>

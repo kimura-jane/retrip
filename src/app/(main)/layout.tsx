@@ -3,6 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getUnreadCountsAction } from "@/features/chat/actions";
 import { BottomNav } from "./_components/bottom-nav";
 
+// このレイアウトは必ずリクエストごとに動的レンダリング。
+// ログイン中ユーザーの未読件数を毎回取得し直すためキャッシュを禁止する。
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function MainLayout({
   children,
 }: {

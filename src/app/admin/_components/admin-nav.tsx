@@ -23,6 +23,7 @@ const NAV_GROUPS: { section: string; items: NavItem[] }[] = [
         label: "Verify",
         title: "本人確認",
       },
+      { href: "/admin/users", label: "Users", title: "ユーザー管理" },
     ],
   },
   {

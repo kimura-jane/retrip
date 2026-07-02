@@ -22,6 +22,7 @@ export function BottomNav({ unreadTotal }: Props) {
 
   return (
     <nav
+      data-bottom-nav
       className="fixed bottom-0 left-0 right-0 z-50 bg-paper-100/95 backdrop-blur border-t border-line"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >

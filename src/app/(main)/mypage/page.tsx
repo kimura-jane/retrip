@@ -360,6 +360,24 @@ export default async function MyPage() {
         </p>
 
         <nav className="divide-y divide-line border-y border-line">
+          {/* Re:Trip について（LP へ外部リンク） */}
+          <a
+            href="https://kimura-jane.github.io/retrip-lp/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between py-5 px-1 hover:bg-paper-50 transition-colors group"
+          >
+            <div>
+              <p className="text-[14px] text-ink-900">Re:Trip について</p>
+              <p className="text-[11px] text-ink-500 font-light mt-1">
+                サービスの世界観をご紹介します
+              </p>
+            </div>
+            <span className="text-[11px] tracking-widest2 uppercase text-ink-500 group-hover:text-ink-900">
+              open ↗
+            </span>
+          </a>
+
           {/* 通知（次セッションで実装） */}
           <div className="flex items-center justify-between py-5 px-1 opacity-40">
             <div>

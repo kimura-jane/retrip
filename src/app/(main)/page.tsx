@@ -56,9 +56,90 @@ export default async function HomePage({
     ? allTours.filter((t) => (t.theme_tags ?? []).includes(selectedTag))
     : allTours;
 
+  // ヒーロー画像は cover を持つ最初のツアーから拝借
+  const heroImage =
+    allTours.find((t) => t.cover_image_url)?.cover_image_url ?? null;
+
   return (
     <>
-      {/* タイトルブロック */}
+      {/* =========================================
+          Hero — 全幅ビジュアル + 英字コピー + 日本語
+          ========================================= */}
+      <section className="relative w-full overflow-hidden bg-paper-200">
+        <div className="relative w-full aspect-[4/5] sm:aspect-[16/10] lg:aspect-[16/8]">
+          {heroImage && (
+            <Image
+              src={heroImage}
+              alt=""
+              fill
+              priority
+              className="object-cover"
+              style={{
+                animation: "retripHeroZoom 12000ms ease-out forwards",
+              }}
+            />
+          )}
+          {/* 可読性のための暗幕 */}
+          <div className="absolute inset-0 bg-gradient-to-b from-ink-900/20 via-ink-900/10 to-ink-900/50" />
+
+          {/* コピー */}
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center text-center px-6"
+            style={{
+              animation: "retripFadeIn 1600ms ease-out both",
+            }}
+          >
+            <p className="font-display italic text-paper-100/90 text-[18px] sm:text-[22px] md:text-[28px] tracking-[0.02em] leading-[1.35] max-w-3xl">
+              Somewhere new.
+              <br className="sm:hidden" /> Someone new.
+              <br className="sm:hidden" /> Someone you.
+            </p>
+            <div className="mt-8 h-px w-10 bg-paper-100/60" />
+            <p className="mt-8 text-paper-100/95 text-[13px] sm:text-[14px] md:text-[15px] font-light tracking-[0.18em] leading-[2.2]">
+              知らない場所で、
+              <br className="sm:hidden" />
+              知らない誰かと、
+              <br className="sm:hidden" />
+              知らない自分に。
+            </p>
+          </div>
+        </div>
+
+        {/* インラインで簡易 keyframes を注入（globals.css を触らないため） */}
+        <style>{`
+          @keyframes retripFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes retripHeroZoom {
+            from { transform: scale(1.06); }
+            to   { transform: scale(1.0); }
+          }
+        `}</style>
+      </section>
+
+      {/* =========================================
+          Intro — 短いエディトリアル導入
+          ========================================= */}
+      <section className="border-b border-line bg-paper-100">
+        <div className="mx-auto max-w-3xl px-6 lg:px-10 py-20 md:py-28 text-center">
+          <p className="font-display italic text-coral-700 text-[13px] sm:text-[14px] tracking-[0.12em] leading-loose">
+            A small group. A real story. Yours.
+          </p>
+          <p className="mt-6 font-serif text-ink-900 text-lg md:text-xl tracking-[0.06em] leading-[2.1]">
+            少人数だから、物語は深くなる。
+          </p>
+          <p className="mt-10 text-[13px] md:text-[14px] font-light tracking-[0.08em] leading-loose2 text-ink-500">
+            週末のバス旅で、ちいさな共同生活を。
+            <br />
+            事前のチャットで顔合わせ、旅の後もつながる。
+          </p>
+        </div>
+      </section>
+
+      {/* =========================================
+          Section Head — Upcoming Journeys
+          ========================================= */}
       <section className="border-b border-line">
         <div className="mx-auto max-w-7xl px-6 lg:px-10 py-16 md:py-20 text-center">
           <p className="font-display italic text-[12px] tracking-widest2 uppercase text-coral-700">
@@ -67,25 +148,21 @@ export default async function HomePage({
           <h1 className="mt-5 font-serif text-3xl md:text-4xl tracking-[0.04em] text-ink-900">
             現在の募集ツアー
           </h1>
-          <p className="mt-6 text-[13px] md:text-[14px] font-light tracking-[0.08em] leading-loose2 text-ink-500">
-            週末のバス旅で、ちいさな共同生活を。
-          </p>
+          <div className="mt-8 mx-auto h-px w-10 bg-line" />
         </div>
       </section>
 
-      {/* タグフィルタ */}
+      {/* =========================================
+          Tag Filter
+          ========================================= */}
       {tagList.length > 0 && (
         <section className="border-b border-line">
-          <div className="mx-auto max-w-7xl px-6 lg:px-10 py-8">
+          <div className="mx-auto max-w-7xl px-6 lg:px-10 py-10">
             <p className="font-display italic text-[11px] tracking-widest2 uppercase text-coral-700 text-center">
               Filter by Theme
             </p>
-            <div className="mt-5 flex flex-wrap justify-center gap-2">
-              <TagChip
-                href="/"
-                label="すべて"
-                active={selectedTag === null}
-              />
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              <TagChip href="/" label="すべて" active={selectedTag === null} />
               {tagList.map(({ tag, count }) => (
                 <TagChip
                   key={tag}
@@ -100,12 +177,13 @@ export default async function HomePage({
         </section>
       )}
 
-      {/* ツアー一覧 */}
-      <section className="py-16 md:py-20">
+      {/* =========================================
+          Tours Grid
+          ========================================= */}
+      <section className="py-16 md:py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
-          {/* 選択中タグの見出し */}
           {selectedTag && (
-            <div className="mb-10 text-center">
+            <div className="mb-12 text-center">
               <p className="font-display italic text-[11px] tracking-widest2 uppercase text-ink-500">
                 Tagged
               </p>
@@ -131,7 +209,7 @@ export default async function HomePage({
                 : "現在、募集中のツアーはありません。"}
             </p>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-20">
               {tours.map((t) => {
                 const isSample = (t.theme_tags ?? []).includes("サンプル");
                 const tags = (t.theme_tags ?? [])
@@ -183,10 +261,12 @@ export default async function HomePage({
                           ))}
                         </div>
                       )}
-                      <div className="mt-5 font-display text-xl text-ink-900">
-                        ¥{(t.price ?? 0).toLocaleString()}
-                        <span className="ml-1 text-[10px] tracking-widest2 text-ink-500 uppercase">
-                          / seat
+                      <div className="mt-5 flex items-baseline gap-2">
+                        <span className="font-display text-xl text-ink-900">
+                          ¥{(t.price ?? 0).toLocaleString()}
+                        </span>
+                        <span className="text-[11px] tracking-[0.15em] text-ink-500 font-light">
+                          / ひとり
                         </span>
                       </div>
                     </div>
@@ -195,6 +275,34 @@ export default async function HomePage({
               })}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* =========================================
+          Editorial Banner — "You're not watching anymore."
+          ========================================= */}
+      <section className="relative w-full overflow-hidden bg-ink-900 text-paper-100">
+        {heroImage && (
+          <>
+            <Image
+              src={heroImage}
+              alt=""
+              fill
+              className="object-cover opacity-40"
+            />
+            <div className="absolute inset-0 bg-ink-900/50" />
+          </>
+        )}
+        <div className="relative mx-auto max-w-4xl px-6 lg:px-10 py-24 md:py-32 text-center">
+          <p className="font-display italic text-paper-100 text-[22px] sm:text-[28px] md:text-[34px] tracking-[0.02em] leading-[1.4]">
+            You&rsquo;re not watching anymore.
+          </p>
+          <div className="mt-8 mx-auto h-px w-10 bg-paper-100/50" />
+          <p className="mt-8 text-paper-100/90 text-[13px] sm:text-[14px] md:text-[15px] font-light tracking-[0.2em] leading-[2.2]">
+            もう、観ている側じゃない。
+            <br />
+            今度は、あなたが主役。
+          </p>
         </div>
       </section>
     </>

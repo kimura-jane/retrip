@@ -126,16 +126,16 @@ export default async function MyPage() {
     none: "text-ink-500",
   };
 
-  // 予約カード（今後・過去で共通利用）
+  // 予約カード
   const renderBookingCard = (b: BookingWithTour) => {
     if (!b.tours) return null;
     return (
       <Link
         key={b.id}
         href={`/tours/${b.tours.id}`}
-        className="group flex items-center gap-5 border border-line bg-paper-100 p-4 hover:border-ink-500 transition-colors"
+        className="group flex items-center gap-4 border border-line bg-paper-100 p-3 hover:border-ink-500 transition-colors"
       >
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden bg-paper-200">
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden bg-paper-200">
           {b.tours.cover_image_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -149,10 +149,10 @@ export default async function MyPage() {
           <p className="text-[11px] tracking-wide text-ink-500 font-light">
             {b.tours.destination} · {fmtDate(b.tours.departure_date)}
           </p>
-          <p className="mt-1 font-serif text-[15px] text-ink-900 truncate">
+          <p className="mt-0.5 font-serif text-[15px] text-ink-900 truncate">
             {b.tours.title}
           </p>
-          <span className="mt-1 inline-block text-[11px] text-coral-700">
+          <span className="mt-0.5 inline-block text-[11px] text-coral-700">
             {statusLabel[b.status]}
           </span>
         </div>
@@ -161,19 +161,18 @@ export default async function MyPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16">
+    <div className="mx-auto max-w-2xl px-6 py-10">
       {/* ページヘッダー */}
-      <header className="mb-16">
-        <h1 className="font-serif text-4xl text-ink-900 leading-loose2">
+      <header className="mb-10">
+        <h1 className="font-serif text-3xl text-ink-900">
           マイページ
         </h1>
-        <div className="mt-6 h-px w-12 bg-coral-500" />
       </header>
 
       {/* プロフィール */}
-      <section className="mb-16">
-        <div className="flex items-start justify-between mb-8">
-          <h2 className="font-serif text-lg text-ink-900">プロフィール</h2>
+      <section className="mb-10">
+        <div className="flex items-start justify-between mb-5">
+          <h2 className="font-serif text-base text-ink-900">プロフィール</h2>
           <Link
             href="/mypage/edit"
             className="text-xs text-coral-700 hover:text-coral-500 transition-colors"
@@ -182,7 +181,7 @@ export default async function MyPage() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-6 mb-10">
+        <div className="flex items-center gap-6 mb-6">
           <Avatar className="h-20 w-20">
             {profile?.avatar_url ? (
               <AvatarImage src={profile.avatar_url} alt={profile.display_name ?? ""} />
@@ -192,7 +191,7 @@ export default async function MyPage() {
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-serif text-2xl text-ink-900 leading-tight">
+            <p className="font-serif text-xl text-ink-900 leading-tight">
               {profile?.display_name ?? "未設定"}
             </p>
             <p className="text-xs text-ink-500 font-light mt-1.5 tracking-wide">
@@ -201,9 +200,9 @@ export default async function MyPage() {
           </div>
         </div>
 
-        <dl className="space-y-6 text-sm">
+        <dl className="space-y-4 text-sm">
           <div>
-            <dt className="text-[11px] text-ink-500 font-light mb-2">
+            <dt className="text-[11px] text-ink-500 font-light mb-1">
               自己紹介
             </dt>
             <dd className="text-ink-900 font-light leading-loose whitespace-pre-wrap">
@@ -212,7 +211,7 @@ export default async function MyPage() {
           </div>
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <dt className="text-[11px] text-ink-500 font-light mb-2">
+              <dt className="text-[11px] text-ink-500 font-light mb-1">
                 性別
               </dt>
               <dd className="text-ink-900 font-light">
@@ -220,7 +219,7 @@ export default async function MyPage() {
               </dd>
             </div>
             <div>
-              <dt className="text-[11px] text-ink-500 font-light mb-2">
+              <dt className="text-[11px] text-ink-500 font-light mb-1">
                 生年月日
               </dt>
               <dd className="text-ink-900 font-light">
@@ -231,15 +230,15 @@ export default async function MyPage() {
         </dl>
       </section>
 
-      <div className="h-px w-full bg-[#E5E0D8] mb-16" />
+      <div className="h-px w-full bg-[#E5E0D8] mb-10" />
 
       {/* My Trip */}
-      <section className="mb-16">
-        <h2 className="font-serif text-2xl text-ink-900 italic mb-8">My Trip</h2>
+      <section className="mb-10">
+        <h2 className="font-serif text-xl text-ink-900 italic mb-5">My Trip</h2>
 
         {/* 今後の予約 */}
-        <div className="mb-10">
-          <h3 className="font-serif text-base text-ink-900 mb-5">今後の旅</h3>
+        <div className="mb-6">
+          <h3 className="font-serif text-base text-ink-900 mb-3">今後の旅</h3>
           {upcoming.length === 0 ? (
             <p className="text-[13px] font-light text-ink-500 leading-loose">
               予約中のツアーはありません。
@@ -248,34 +247,34 @@ export default async function MyPage() {
               </Link>
             </p>
           ) : (
-            <div className="space-y-3">{upcoming.map(renderBookingCard)}</div>
+            <div className="space-y-2">{upcoming.map(renderBookingCard)}</div>
           )}
         </div>
 
         {/* 過去の参加 */}
         {past.length > 0 && (
           <div>
-            <h3 className="font-serif text-base text-ink-900 mb-5">これまでの旅</h3>
-            <div className="space-y-3">{past.map(renderBookingCard)}</div>
+            <h3 className="font-serif text-base text-ink-900 mb-3">これまでの旅</h3>
+            <div className="space-y-2">{past.map(renderBookingCard)}</div>
           </div>
         )}
       </section>
 
-      <div className="h-px w-full bg-[#E5E0D8] mb-16" />
+      <div className="h-px w-full bg-[#E5E0D8] mb-10" />
 
       {/* 設定 */}
       <section>
-        <h2 className="font-serif text-lg text-ink-900 mb-8">設定</h2>
+        <h2 className="font-serif text-base text-ink-900 mb-5">設定</h2>
 
         <nav className="divide-y divide-line border-y border-line">
           {/* 本人確認 */}
           <Link
             href="/mypage/identity"
-            className="flex items-center justify-between py-5 px-1 hover:bg-paper-50 transition-colors group"
+            className="flex items-center justify-between py-3.5 px-1 hover:bg-paper-50 transition-colors group"
           >
             <div>
               <p className="text-[14px] text-ink-900">本人確認</p>
-              <p className={`text-[11px] font-light mt-1 ${idStatusColor[idStatus]}`}>
+              <p className={`text-[11px] font-light mt-0.5 ${idStatusColor[idStatus]}`}>
                 {idStatusLabel[idStatus]}
               </p>
             </div>
@@ -289,11 +288,11 @@ export default async function MyPage() {
             href="https://kimura-jane.github.io/retrip-lp/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-between py-5 px-1 hover:bg-paper-50 transition-colors group"
+            className="flex items-center justify-between py-3.5 px-1 hover:bg-paper-50 transition-colors group"
           >
             <div>
               <p className="text-[14px] text-ink-900">Re:Trip について</p>
-              <p className="text-[11px] text-ink-500 font-light mt-1">
+              <p className="text-[11px] text-ink-500 font-light mt-0.5">
                 サービスの世界観をご紹介します
               </p>
             </div>
@@ -303,10 +302,10 @@ export default async function MyPage() {
           </a>
 
           {/* 通知設定（未実装） */}
-          <div className="flex items-center justify-between py-5 px-1 opacity-40">
+          <div className="flex items-center justify-between py-3.5 px-1 opacity-40">
             <div>
               <p className="text-[14px] text-ink-900">通知設定</p>
-              <p className="text-[11px] text-ink-500 font-light mt-1">準備中</p>
+              <p className="text-[11px] text-ink-500 font-light mt-0.5">準備中</p>
             </div>
             <span className="text-[11px] text-ink-500">準備中</span>
           </div>
@@ -314,11 +313,11 @@ export default async function MyPage() {
           {/* チャットカスタマイズ */}
           <Link
             href="/mypage/chat-customize"
-            className="flex items-center justify-between py-5 px-1 hover:bg-paper-50 transition-colors group"
+            className="flex items-center justify-between py-3.5 px-1 hover:bg-paper-50 transition-colors group"
           >
             <div>
               <p className="text-[14px] text-ink-900">チャットカスタマイズ</p>
-              <p className="text-[11px] text-ink-500 font-light mt-1">
+              <p className="text-[11px] text-ink-500 font-light mt-0.5">
                 メッセージの色とフォントを選ぶ
               </p>
             </div>
@@ -331,11 +330,11 @@ export default async function MyPage() {
           <form action={signOutAction}>
             <button
               type="submit"
-              className="w-full flex items-center justify-between py-5 px-1 hover:bg-paper-50 transition-colors group text-left"
+              className="w-full flex items-center justify-between py-3.5 px-1 hover:bg-paper-50 transition-colors group text-left"
             >
               <div>
                 <p className="text-[14px] text-ink-900">サインアウト</p>
-                <p className="text-[11px] text-ink-500 font-light mt-1">
+                <p className="text-[11px] text-ink-500 font-light mt-0.5">
                   一時的にログアウトします
                 </p>
               </div>
@@ -348,11 +347,11 @@ export default async function MyPage() {
           {/* 退会 */}
           <Link
             href="/settings/withdraw"
-            className="flex items-center justify-between py-5 px-1 hover:bg-paper-50 transition-colors group"
+            className="flex items-center justify-between py-3.5 px-1 hover:bg-paper-50 transition-colors group"
           >
             <div>
               <p className="text-[14px] text-coral-700">退会する</p>
-              <p className="text-[11px] text-ink-500 font-light mt-1">
+              <p className="text-[11px] text-ink-500 font-light mt-0.5">
                 アカウントを論理削除します
               </p>
             </div>

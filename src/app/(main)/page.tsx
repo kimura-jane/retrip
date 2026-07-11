@@ -163,13 +163,13 @@ export default async function HomePage({
           Intro
           ========================================= */}
       <section className="border-b border-line bg-paper-100">
-        <div className="mx-auto max-w-3xl px-6 py-24 text-center md:py-36 lg:px-10">
-          <h2 className="heading-editorial mt-10 text-ink-900">
+        <div className="mx-auto max-w-3xl px-6 py-16 text-center md:py-24 lg:px-10">
+          <h2 className="heading-editorial text-ink-900">
             少人数だから、
             <br />
             物語は深くなる。
           </h2>
-          <p className="mt-10 text-[13px] font-light leading-[2.4] tracking-[0.1em] text-ink-500 md:text-sm">
+          <p className="mt-6 text-[13px] font-light leading-[2.4] tracking-[0.1em] text-ink-500 md:text-sm">
             週末のバス旅で、ちいさな共同生活を。
             <br />
             事前のチャットで顔合わせ、旅の後もつながる。
@@ -183,7 +183,7 @@ export default async function HomePage({
           ========================================= */}
       {tagList.length > 0 && (
         <section className="border-b border-line bg-paper-50">
-          <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
+          <div className="mx-auto max-w-7xl px-6 py-8 lg:px-10">
             <p className="text-center font-serif text-sm tracking-[0.18em] text-coral-700">
               テーマで絞る
             </p>
@@ -209,7 +209,7 @@ export default async function HomePage({
       <section className="bg-paper-50 py-16 md:py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
           {selectedTag && (
-            <div className="mb-12 text-center">
+            <div className="mb-8 text-center">
               <h2 className="font-serif text-2xl text-ink-900">
                 #{selectedTag}
               </h2>
@@ -232,7 +232,7 @@ export default async function HomePage({
                 : "現在、募集中のツアーはありません。"}
             </p>
           ) : (
-            <div className="grid gap-x-8 gap-y-20 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
               {tours.map((t, idx) => {
                 const isSample = (t.theme_tags ?? []).includes("サンプル");
                 const tags = (t.theme_tags ?? [])
@@ -313,9 +313,9 @@ export default async function HomePage({
           className="object-cover opacity-40"
         />
         <div className="absolute inset-0 bg-ink-900/55" />
-        <div className="relative flex min-h-[70svh] flex-col items-center justify-center px-6 py-24 text-center lg:px-10">
+        <div className="relative flex min-h-[70svh] flex-col items-center justify-center px-6 py-16 text-center lg:px-10">
           <span className="rule-thin mx-auto w-10 text-paper-100" />
-          <p className="mt-10 font-serif text-[clamp(1.8rem,5vw,3.75rem)] font-light leading-[1.8] tracking-[0.14em] text-paper-100">
+          <p className="mt-6 font-serif text-[clamp(1.8rem,5vw,3.75rem)] font-light leading-[1.8] tracking-[0.14em] text-paper-100">
             もう、観ている側じゃない。
             <br />
             今度は、あなたが主役。

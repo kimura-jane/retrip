@@ -29,7 +29,7 @@ export default async function MainLayout({
   }
 
   return (
-    <div className="min-h-screen bg-paper-100 text-ink-900">
+    <div className="min-h-screen flex flex-col bg-paper-100 text-ink-900">
       {/* 上部ヘッダー：ロゴのみ。未ログイン時のみ Login/Sign up を右側に出す */}
       <header className="sticky top-0 z-40 bg-paper-100/80 backdrop-blur border-b border-line">
         <div className="mx-auto max-w-7xl px-6 lg:px-10 h-16 flex items-center justify-between">
@@ -60,14 +60,14 @@ export default async function MainLayout({
         </div>
       </header>
 
-      {/* 下部ナビ分の余白を確保（pb-[env(safe-area-inset-bottom)] + 64px くらい） */}
-      <main className={user ? "pb-24" : ""}>{children}</main>
+      {/* メインコンテンツ。ログイン時は下部タブバー分の余白を確保 */}
+      <main className={user ? "flex-1 pb-20" : "flex-1"}>{children}</main>
 
       {/* フッター */}
-      <footer className="mt-24 border-t border-line bg-paper-50">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10 py-12 space-y-10">
+      <footer className="border-t border-line bg-paper-50">
+        <div className="mx-auto max-w-7xl px-6 lg:px-10 py-8 space-y-6">
           {/* リンク行 */}
-          <nav className="flex flex-wrap gap-x-6 gap-y-3 text-[12px] text-ink-500 font-light">
+          <nav className="flex flex-wrap gap-x-6 gap-y-2 text-[12px] text-ink-500 font-light">
             <a
               href="https://kimura-jane.github.io/retrip-lp/"
               target="_blank"
@@ -106,8 +106,8 @@ export default async function MainLayout({
           </nav>
 
           {/* ロゴ + コピーライト */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 text-[12px] text-ink-500 font-light border-t border-line pt-8">
-            <div className="font-display text-2xl text-ink-900">Re:Trip</div>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-[12px] text-ink-500 font-light border-t border-line pt-5">
+            <div className="font-display text-xl text-ink-900">Re:Trip</div>
             <div className="text-[11px] font-light">
               © {new Date().getFullYear()} Re:Trip
             </div>

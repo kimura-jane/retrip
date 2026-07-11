@@ -164,7 +164,6 @@ export default async function HomePage({
           ========================================= */}
       <section className="border-b border-line bg-paper-100">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center md:py-36 lg:px-10">
-          <span className="rule-thin mx-auto w-10 text-coral-700" />
           <h2 className="heading-editorial mt-10 text-ink-900">
             少人数だから、
             <br />
@@ -178,17 +177,6 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* =========================================
-          Section Head — 現在の募集ツアー
-          ========================================= */}
-      <section className="border-b border-line bg-paper-50">
-        <div className="mx-auto max-w-7xl px-6 py-16 text-center md:py-20 lg:px-10">
-          <span className="rule-thin mx-auto w-10 text-coral-700" />
-          <h1 className="heading-editorial mt-8 text-ink-900">
-            現在の募集ツアー
-          </h1>
-        </div>
-      </section>
 
       {/* =========================================
           Tag Filter
@@ -302,9 +290,6 @@ export default async function HomePage({
                       <div className="mt-5 flex items-baseline gap-2">
                         <span className="font-display text-3xl font-light text-ink-900">
                           ¥{(t.price ?? 0).toLocaleString()}
-                        </span>
-                        <span className="caption-en text-[10px] text-ink-500">
-                          ／ ひとり
                         </span>
                       </div>
                     </div>

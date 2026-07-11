@@ -163,15 +163,15 @@ export default async function MyPage() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
       {/* ページヘッダー */}
-      <header className="mb-10">
+      <header className="mb-8">
         <h1 className="font-serif text-3xl text-ink-900">
           マイページ
         </h1>
       </header>
 
       {/* プロフィール */}
-      <section className="mb-10">
-        <div className="flex items-start justify-between mb-5">
+      <section className="mb-8">
+        <div className="flex items-start justify-between mb-4">
           <h2 className="font-serif text-base text-ink-900">プロフィール</h2>
           <Link
             href="/mypage/edit"
@@ -181,7 +181,7 @@ export default async function MyPage() {
           </Link>
         </div>
 
-        <div className="flex items-center gap-6 mb-6">
+        <div className="flex items-center gap-6 mb-4">
           <Avatar className="h-20 w-20">
             {profile?.avatar_url ? (
               <AvatarImage src={profile.avatar_url} alt={profile.display_name ?? ""} />
@@ -200,7 +200,7 @@ export default async function MyPage() {
           </div>
         </div>
 
-        <dl className="space-y-4 text-sm">
+        <dl className="space-y-3 text-sm">
           <div>
             <dt className="text-[11px] text-ink-500 font-light mb-1">
               自己紹介
@@ -230,14 +230,12 @@ export default async function MyPage() {
         </dl>
       </section>
 
-      <div className="h-px w-full bg-[#E5E0D8] mb-10" />
-
       {/* My Trip */}
-      <section className="mb-10">
-        <h2 className="font-serif text-xl text-ink-900 italic mb-5">My Trip</h2>
+      <section className="mb-8">
+        <h2 className="font-serif text-xl text-ink-900 italic mb-4">My Trip</h2>
 
         {/* 今後の予約 */}
-        <div className="mb-6">
+        <div className="mb-5">
           <h3 className="font-serif text-base text-ink-900 mb-3">今後の旅</h3>
           {upcoming.length === 0 ? (
             <p className="text-[13px] font-light text-ink-500 leading-loose">
@@ -260,17 +258,15 @@ export default async function MyPage() {
         )}
       </section>
 
-      <div className="h-px w-full bg-[#E5E0D8] mb-10" />
-
       {/* 設定 */}
       <section>
-        <h2 className="font-serif text-base text-ink-900 mb-5">設定</h2>
+        <h2 className="font-serif text-base text-ink-900 mb-4">設定</h2>
 
         <nav className="divide-y divide-line border-y border-line">
           {/* 本人確認 */}
           <Link
             href="/mypage/identity"
-            className="flex items-center justify-between py-3.5 px-1 hover:bg-paper-50 transition-colors group"
+            className="flex items-center justify-between py-3 px-1 hover:bg-paper-50 transition-colors group"
           >
             <div>
               <p className="text-[14px] text-ink-900">本人確認</p>
@@ -288,7 +284,7 @@ export default async function MyPage() {
             href="https://kimura-jane.github.io/retrip-lp/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-between py-3.5 px-1 hover:bg-paper-50 transition-colors group"
+            className="flex items-center justify-between py-3 px-1 hover:bg-paper-50 transition-colors group"
           >
             <div>
               <p className="text-[14px] text-ink-900">Re:Trip について</p>
@@ -302,7 +298,7 @@ export default async function MyPage() {
           </a>
 
           {/* 通知設定（未実装） */}
-          <div className="flex items-center justify-between py-3.5 px-1 opacity-40">
+          <div className="flex items-center justify-between py-3 px-1 opacity-40">
             <div>
               <p className="text-[14px] text-ink-900">通知設定</p>
               <p className="text-[11px] text-ink-500 font-light mt-0.5">準備中</p>
@@ -313,7 +309,7 @@ export default async function MyPage() {
           {/* チャットカスタマイズ */}
           <Link
             href="/mypage/chat-customize"
-            className="flex items-center justify-between py-3.5 px-1 hover:bg-paper-50 transition-colors group"
+            className="flex items-center justify-between py-3 px-1 hover:bg-paper-50 transition-colors group"
           >
             <div>
               <p className="text-[14px] text-ink-900">チャットカスタマイズ</p>
@@ -330,7 +326,7 @@ export default async function MyPage() {
           <form action={signOutAction}>
             <button
               type="submit"
-              className="w-full flex items-center justify-between py-3.5 px-1 hover:bg-paper-50 transition-colors group text-left"
+              className="w-full flex items-center justify-between py-3 px-1 hover:bg-paper-50 transition-colors group text-left"
             >
               <div>
                 <p className="text-[14px] text-ink-900">サインアウト</p>
@@ -347,7 +343,7 @@ export default async function MyPage() {
           {/* 退会 */}
           <Link
             href="/settings/withdraw"
-            className="flex items-center justify-between py-3.5 px-1 hover:bg-paper-50 transition-colors group"
+            className="flex items-center justify-between py-3 px-1 hover:bg-paper-50 transition-colors group"
           >
             <div>
               <p className="text-[14px] text-coral-700">退会する</p>

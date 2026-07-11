@@ -72,25 +72,25 @@ export default async function ChatListPage() {
   const getUnread = (roomId: string): number => unreadCounts[roomId] ?? 0;
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-16">
+    <div className="mx-auto max-w-2xl px-6 py-10">
       {/* ページヘッダー */}
-      <header className="mb-16">
+      <header className="mb-10">
         <p className="font-display italic uppercase tracking-widest2 text-xs text-coral-700">
           Lounges
         </p>
         <h1 className="font-serif text-4xl text-ink-900 mt-3 leading-loose2">
           チャット
         </h1>
-        <div className="mt-6 h-px w-12 bg-coral-500" />
-        <p className="mt-6 text-[13px] text-ink-500 font-light tracking-wide leading-loose">
+        <div className="mt-4 h-px w-12 bg-coral-500" />
+        <p className="mt-4 text-[13px] text-ink-500 font-light tracking-wide leading-loose">
           他の旅人たちと、自由におしゃべりしましょう。
         </p>
       </header>
 
       {/* 参加中の旅チャット（予約のあるツアーのみ表示される） */}
       {tourRooms.length > 0 && (
-        <section className="mb-16">
-          <p className="font-display italic uppercase tracking-widest2 text-[11px] text-coral-700 mb-8">
+        <section className="mb-10">
+          <p className="font-display italic uppercase tracking-widest2 text-[11px] text-coral-700 mb-5">
             My journeys
           </p>
           <ul className="divide-y divide-[#E5E0D8] border-y border-[#E5E0D8]">
@@ -98,7 +98,7 @@ export default async function ChatListPage() {
               <li key={room.id}>
                 <Link
                   href={`/chat/${room.id}`}
-                  className="flex items-center justify-between py-5 group"
+                  className="flex items-center justify-between py-4 group"
                 >
                   <span className="font-serif text-lg text-ink-900 group-hover:text-coral-700 transition-colors">
                     {room.name}
@@ -117,8 +117,8 @@ export default async function ChatListPage() {
       )}
 
       {/* みんなの広場 */}
-      <section className="mb-16">
-        <p className="font-display italic uppercase tracking-widest2 text-[11px] text-coral-700 mb-8">
+      <section className="mb-10">
+        <p className="font-display italic uppercase tracking-widest2 text-[11px] text-coral-700 mb-5">
           For everyone
         </p>
         <ul className="divide-y divide-[#E5E0D8] border-y border-[#E5E0D8]">
@@ -126,7 +126,7 @@ export default async function ChatListPage() {
             <li key={room.id}>
               <Link
                 href={`/chat/${room.id}`}
-                className="flex items-center justify-between py-5 group"
+                className="flex items-center justify-between py-4 group"
               >
                 <span className="font-serif text-lg text-ink-900 group-hover:text-coral-700 transition-colors">
                   {room.name}
@@ -143,12 +143,10 @@ export default async function ChatListPage() {
         </ul>
       </section>
 
-      <div className="h-px w-full bg-[#E5E0D8] mb-16" />
-
       {/* 本人確認済みエリア */}
       {isVerified ? (
         <section>
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-5">
             <p className="font-display italic uppercase tracking-widest2 text-[11px] text-coral-700">
               Verified only
             </p>
@@ -162,7 +160,7 @@ export default async function ChatListPage() {
               <li key={room.id}>
                 <Link
                   href={`/chat/${room.id}`}
-                  className="flex items-center justify-between py-5 group"
+                  className="flex items-center justify-between py-4 group"
                 >
                   <span className="font-serif text-lg text-ink-900 group-hover:text-coral-700 transition-colors">
                     {room.name}
@@ -180,7 +178,7 @@ export default async function ChatListPage() {
         </section>
       ) : (
         <section>
-          <p className="font-display italic uppercase tracking-widest2 text-[11px] text-coral-700 mb-8">
+          <p className="font-display italic uppercase tracking-widest2 text-[11px] text-coral-700 mb-5">
             Verified only
           </p>
           <div className="border-l-2 border-coral-500 pl-5 py-2 space-y-4">

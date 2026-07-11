@@ -14,6 +14,54 @@ type Tour = {
 
 type SearchParams = Promise<{ tag?: string | string[] }>;
 
+// ==========================================
+// ヒーロー用 editorial 画像プール（Unsplash License / 商用可）
+// ページアクセスごとにランダムで 1 枚選ぶ
+// ==========================================
+const HERO_POOL: {
+  src: string;
+  alt: string;
+  en: string;
+  ja: string;
+}[] = [
+  {
+    src: "https://images.unsplash.com/photo-1490806843957-31f4c9a91c65?w=1920&q=80&auto=format&fit=crop",
+    alt: "朝霧の湖と山",
+    en: "Slow mornings, wild nature.",
+    ja: "静けさに、耳をすます。",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1920&q=80&auto=format&fit=crop",
+    alt: "京都の路地と提灯",
+    en: "Taste the small streets.",
+    ja: "路地の奥に、ごちそう。",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1545569310-3e0141c68f96?w=1920&q=80&auto=format&fit=crop",
+    alt: "バスの窓辺と旅の景色",
+    en: "Somewhere on the way.",
+    ja: "誰かと向かう、まだ知らない場所へ。",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1920&q=80&auto=format&fit=crop",
+    alt: "富士山と湖のリフレクション",
+    en: "Frame the day.",
+    ja: "この日を、切り取って。",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=1920&q=80&auto=format&fit=crop",
+    alt: "温泉宿の縁側と光",
+    en: "Steam, silence, stillness.",
+    ja: "ゆっくり、ほどける時間。",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1528164344705-47542687000d?w=1920&q=80&auto=format&fit=crop",
+    alt: "秋の山道",
+    en: "Into the deep autumn.",
+    ja: "森の奥へ、深く。",
+  },
+];
+
 export default async function HomePage({
   searchParams,
 }: {
@@ -34,7 +82,7 @@ export default async function HomePage({
 
   const allTours: Tour[] = (data ?? []) as Tour[];
 
-  // タグ集計（「サンプル」は集計から除外、出現頻度順、同数なら名前順）
+  // タグ集計（「サンプル」は除外）
   const tagCountMap = new Map<string, number>();
   for (const t of allTours) {
     for (const tag of t.theme_tags ?? []) {
@@ -51,85 +99,93 @@ export default async function HomePage({
       return a.tag.localeCompare(b.tag, "ja");
     });
 
-  // 選択中タグでフィルタ
   const tours: Tour[] = selectedTag
     ? allTours.filter((t) => (t.theme_tags ?? []).includes(selectedTag))
     : allTours;
 
-  // ヒーロー画像は cover を持つ最初のツアーから拝借
-  const heroImage =
-    allTours.find((t) => t.cover_image_url)?.cover_image_url ?? null;
+  // ヒーロー：ページアクセスごとにランダム
+  const hero =
+    HERO_POOL[Math.floor(Math.random() * HERO_POOL.length)] ?? HERO_POOL[0]!;
 
   return (
     <>
       {/* =========================================
-          Hero — 全幅ビジュアル + 英字コピー + 日本語
+          Hero — フルビューポート + 大型英字 + 日本語
           ========================================= */}
-      <section className="relative w-full overflow-hidden bg-paper-200">
-        <div className="relative w-full aspect-[4/5] sm:aspect-[16/10] lg:aspect-[16/8]">
-          {heroImage && (
-            <Image
-              src={heroImage}
-              alt=""
-              fill
-              priority
-              className="object-cover"
-              style={{
-                animation: "retripHeroZoom 12000ms ease-out forwards",
-              }}
-            />
-          )}
-          {/* 可読性のための暗幕 */}
-          <div className="absolute inset-0 bg-gradient-to-b from-ink-900/20 via-ink-900/10 to-ink-900/50" />
+      <section className="relative h-[100svh] min-h-[640px] w-full overflow-hidden bg-ink-900 text-paper-100">
+        <Image
+          src={hero.src}
+          alt={hero.alt}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+          style={{ animation: "retripHeroZoom 18s ease-out forwards" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-ink-900/45 via-ink-900/20 to-ink-900/65" />
 
-          {/* コピー */}
-          <div
-            className="absolute inset-0 flex flex-col items-center justify-center text-center px-6"
-            style={{
-              animation: "retripFadeIn 1600ms ease-out both",
-            }}
-          >
-            <p className="font-display italic text-paper-100/90 text-[18px] sm:text-[22px] md:text-[28px] tracking-[0.02em] leading-[1.35] max-w-3xl">
-              Somewhere new.
-              <br className="sm:hidden" /> Someone new.
-              <br className="sm:hidden" /> Someone you.
-            </p>
-            <div className="mt-8 h-px w-10 bg-paper-100/60" />
-            <p className="mt-8 text-paper-100/95 text-[13px] sm:text-[14px] md:text-[15px] font-light tracking-[0.18em] leading-[2.2]">
-              知らない場所で、
-              <br className="sm:hidden" />
-              知らない誰かと、
-              <br className="sm:hidden" />
-              知らない自分に。
-            </p>
-          </div>
+        <div className="absolute left-0 right-0 top-0 z-10 flex items-center justify-center px-6 py-8 md:py-10">
+          <span className="font-display text-2xl font-light italic tracking-[0.18em] text-paper-100">
+            Re:Trip
+          </span>
         </div>
 
-        {/* インラインで簡易 keyframes を注入（globals.css を触らないため） */}
+        <div
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center px-6 text-center"
+          style={{ animation: "retripFadeIn 1.8s ease-out both" }}
+        >
+          <p className="caption-en mb-8 text-paper-100/80">{hero.en}</p>
+          <span className="rule-thin mb-9 w-10 text-paper-100" />
+
+          <h1 className="hero-en text-paper-100">
+            <span className="block">Somewhere new.</span>
+            <span className="block">Someone new.</span>
+            <span className="block">Someone you.</span>
+          </h1>
+
+          <p className="hero-ja mt-10 text-paper-100/90">{hero.ja}</p>
+        </div>
+
+        <div className="absolute bottom-0 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center">
+          <span className="caption-en mb-4 text-[10px] text-paper-100/75">
+            Scroll
+          </span>
+          <span className="h-16 w-px bg-paper-100/70 [animation:retripScrollHint_2.4s_ease-in-out_infinite]" />
+        </div>
+
         <style>{`
           @keyframes retripFadeIn {
-            from { opacity: 0; transform: translateY(8px); }
+            from { opacity: 0; transform: translateY(12px); }
             to   { opacity: 1; transform: translateY(0); }
           }
           @keyframes retripHeroZoom {
-            from { transform: scale(1.06); }
+            from { transform: scale(1.08); }
             to   { transform: scale(1.0); }
+          }
+          @keyframes retripScrollHint {
+            0%   { transform: scaleY(0); transform-origin: top; opacity: 0.2; }
+            50%  { transform: scaleY(1); transform-origin: top; opacity: 0.8; }
+            51%  { transform: scaleY(1); transform-origin: bottom; }
+            100% { transform: scaleY(0); transform-origin: bottom; opacity: 0.2; }
           }
         `}</style>
       </section>
 
       {/* =========================================
-          Intro — 短いエディトリアル導入
+          Intro
           ========================================= */}
       <section className="border-b border-line bg-paper-100">
-        <div className="mx-auto max-w-3xl px-6 lg:px-10 py-20 md:py-28 text-center">
-          <p className="font-display italic text-coral-700 text-[13px] sm:text-[14px] tracking-[0.12em] leading-loose">
+        <div className="mx-auto max-w-3xl px-6 py-24 text-center md:py-36 lg:px-10">
+          <p className="caption-en text-coral-700">
             A small group. A real story. Yours.
           </p>
-          <p className="mt-6 font-serif text-ink-900 text-lg md:text-xl tracking-[0.06em] leading-[2.1]">
-            少人数だから、物語は深くなる。
-          </p>
-          <p className="mt-10 text-[13px] md:text-[14px] font-light tracking-[0.08em] leading-loose2 text-ink-500">
+          <span className="rule-thin mx-auto mt-8 w-10 text-coral-700" />
+          <h2 className="heading-editorial mt-10 text-ink-900">
+            少人数だから、
+            <br />
+            物語は深くなる。
+          </h2>
+          <p className="mt-10 text-[13px] font-light leading-[2.4] tracking-[0.1em] text-ink-500 md:text-sm">
             週末のバス旅で、ちいさな共同生活を。
             <br />
             事前のチャットで顔合わせ、旅の後もつながる。
@@ -140,15 +196,13 @@ export default async function HomePage({
       {/* =========================================
           Section Head — Upcoming Journeys
           ========================================= */}
-      <section className="border-b border-line">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10 py-16 md:py-20 text-center">
-          <p className="font-display italic text-[12px] tracking-widest2 uppercase text-coral-700">
-            Upcoming Journeys
-          </p>
-          <h1 className="mt-5 font-serif text-3xl md:text-4xl tracking-[0.04em] text-ink-900">
+      <section className="border-b border-line bg-paper-50">
+        <div className="mx-auto max-w-7xl px-6 py-16 text-center md:py-20 lg:px-10">
+          <p className="caption-en text-coral-700">Upcoming Journeys</p>
+          <span className="rule-thin mx-auto mt-7 w-10 text-coral-700" />
+          <h1 className="heading-editorial mt-8 text-ink-900">
             現在の募集ツアー
           </h1>
-          <div className="mt-8 mx-auto h-px w-10 bg-line" />
         </div>
       </section>
 
@@ -156,9 +210,9 @@ export default async function HomePage({
           Tag Filter
           ========================================= */}
       {tagList.length > 0 && (
-        <section className="border-b border-line">
-          <div className="mx-auto max-w-7xl px-6 lg:px-10 py-10">
-            <p className="font-display italic text-[11px] tracking-widest2 uppercase text-coral-700 text-center">
+        <section className="border-b border-line bg-paper-50">
+          <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
+            <p className="caption-en text-center text-coral-700">
               Filter by Theme
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -180,37 +234,35 @@ export default async function HomePage({
       {/* =========================================
           Tours Grid
           ========================================= */}
-      <section className="py-16 md:py-24">
+      <section className="bg-paper-50 py-16 md:py-24">
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
           {selectedTag && (
             <div className="mb-12 text-center">
-              <p className="font-display italic text-[11px] tracking-widest2 uppercase text-ink-500">
-                Tagged
-              </p>
-              <h2 className="mt-2 font-serif text-2xl tracking-[0.04em] text-ink-900">
+              <p className="caption-en text-ink-500">Tagged</p>
+              <h2 className="mt-2 font-serif text-2xl text-ink-900">
                 #{selectedTag}
               </h2>
-              <p className="mt-3 text-[12px] font-light text-ink-500">
+              <p className="mt-3 text-xs font-light text-ink-500">
                 {tours.length} 件のツアー
               </p>
               <Link
                 href="/"
-                className="inline-block mt-4 text-[11px] tracking-[0.15em] uppercase text-coral-700 hover:underline"
+                className="mt-4 inline-block text-[11px] uppercase tracking-[0.15em] text-coral-700 hover:underline"
               >
-                ← すべて表示
+                ← all
               </Link>
             </div>
           )}
 
           {tours.length === 0 ? (
-            <p className="text-center text-[13px] font-light text-ink-500 leading-loose2">
+            <p className="text-center text-[13px] font-light leading-loose text-ink-500">
               {selectedTag
                 ? `「${selectedTag}」に該当するツアーは現在ありません。`
                 : "現在、募集中のツアーはありません。"}
             </p>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-20">
-              {tours.map((t) => {
+            <div className="grid gap-x-8 gap-y-20 sm:grid-cols-2 lg:grid-cols-3">
+              {tours.map((t, idx) => {
                 const isSample = (t.theme_tags ?? []).includes("サンプル");
                 const tags = (t.theme_tags ?? [])
                   .filter((x) => x !== "サンプル")
@@ -222,6 +274,7 @@ export default async function HomePage({
                       day: "numeric",
                     })
                   : "";
+                const num = String(idx + 1).padStart(3, "0");
                 return (
                   <Link key={t.id} href={`/tours/${t.id}`} className="group block">
                     <div className="relative aspect-[4/5] overflow-hidden bg-paper-200">
@@ -230,31 +283,33 @@ export default async function HomePage({
                           src={t.cover_image_url}
                           alt={t.title}
                           fill
+                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                           className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
                         />
                       )}
                       {isSample && (
-                        <span className="absolute top-4 left-4 bg-coral-500 text-paper-100 text-[11px] tracking-widest2 uppercase px-3 py-1.5 font-display italic">
+                        <span className="caption-en absolute left-4 top-4 bg-coral-500 px-3 py-1.5 text-paper-100">
                           sample
                         </span>
                       )}
+                      <span className="caption-en absolute bottom-4 right-4 bg-paper-100/90 px-3 py-1.5 text-ink-900 backdrop-blur-sm">
+                        № {num}
+                      </span>
                     </div>
                     <div className="mt-6">
-                      <div className="font-display italic text-[11px] tracking-widest2 uppercase text-ink-500">
+                      <p className="caption-en text-ink-500">
                         {t.destination ?? ""}
-                        {dateLabel && ` · ${dateLabel}`}
-                      </div>
-                      <h3 className="mt-3 font-serif text-xl tracking-[0.04em] text-ink-900 leading-snug">
+                        {dateLabel && ` — ${dateLabel}`}
+                      </p>
+                      <h3 className="mt-3 font-serif text-xl leading-snug text-ink-900">
                         {t.title}
                       </h3>
                       {tags.length > 0 && (
-                        <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[11px] tracking-[0.15em] text-ink-500 font-light">
+                        <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-light tracking-[0.15em] text-ink-500">
                           {tags.map((tag) => (
                             <span
                               key={tag}
-                              className={
-                                tag === selectedTag ? "text-coral-700" : ""
-                              }
+                              className={tag === selectedTag ? "text-coral-700" : ""}
                             >
                               #{tag}
                             </span>
@@ -262,11 +317,11 @@ export default async function HomePage({
                         </div>
                       )}
                       <div className="mt-5 flex items-baseline gap-2">
-                        <span className="font-display text-xl text-ink-900">
+                        <span className="font-display text-3xl font-light text-ink-900">
                           ¥{(t.price ?? 0).toLocaleString()}
                         </span>
-                        <span className="text-[11px] tracking-[0.15em] text-ink-500 font-light">
-                          / ひとり
+                        <span className="caption-en text-[10px] text-ink-500">
+                          / per seat
                         </span>
                       </div>
                     </div>
@@ -279,26 +334,25 @@ export default async function HomePage({
       </section>
 
       {/* =========================================
-          Editorial Banner — "You're not watching anymore."
+          Editorial Banner
           ========================================= */}
-      <section className="relative w-full overflow-hidden bg-ink-900 text-paper-100">
-        {heroImage && (
-          <>
-            <Image
-              src={heroImage}
-              alt=""
-              fill
-              className="object-cover opacity-40"
-            />
-            <div className="absolute inset-0 bg-ink-900/50" />
-          </>
-        )}
-        <div className="relative mx-auto max-w-4xl px-6 lg:px-10 py-24 md:py-32 text-center">
-          <p className="font-display italic text-paper-100 text-[22px] sm:text-[28px] md:text-[34px] tracking-[0.02em] leading-[1.4]">
-            You&rsquo;re not watching anymore.
+      <section className="relative min-h-[70svh] w-full overflow-hidden bg-ink-900 text-paper-100">
+        <Image
+          src={hero.src}
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover opacity-40"
+        />
+        <div className="absolute inset-0 bg-ink-900/55" />
+        <div className="relative flex min-h-[70svh] flex-col items-center justify-center px-6 py-24 text-center lg:px-10">
+          <p className="hero-en text-paper-100">
+            You&rsquo;re not watching
+            <br />
+            anymore.
           </p>
-          <div className="mt-8 mx-auto h-px w-10 bg-paper-100/50" />
-          <p className="mt-8 text-paper-100/90 text-[13px] sm:text-[14px] md:text-[15px] font-light tracking-[0.2em] leading-[2.2]">
+          <span className="rule-thin mx-auto mt-10 w-10 text-paper-100" />
+          <p className="hero-ja mt-10 text-paper-100/90">
             もう、観ている側じゃない。
             <br />
             今度は、あなたが主役。
@@ -329,17 +383,13 @@ function TagChip({
       href={href}
       className={`inline-flex items-center gap-1.5 border px-3 py-1.5 text-[12px] tracking-[0.08em] transition ${
         active
-          ? "bg-coral-500 text-paper-100 border-coral-500"
-          : "bg-paper-50 text-ink-900 border-line hover:border-coral-500 hover:text-coral-700"
+          ? "border-coral-500 bg-coral-500 text-paper-100"
+          : "border-line bg-paper-50 text-ink-900 hover:border-coral-500 hover:text-coral-700"
       }`}
     >
-      <span className="font-light">{label}</span>
+      {label}
       {typeof count === "number" && (
-        <span
-          className={`text-[10px] ${
-            active ? "text-paper-100/70" : "text-ink-500"
-          }`}
-        >
+        <span className={active ? "text-paper-100/70" : "text-ink-500"}>
           {count}
         </span>
       )}

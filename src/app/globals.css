@@ -7,28 +7,28 @@
 @layer base {
   :root {
     /* 背景・テキスト */
-    --background: 80 33% 98%;          /* #FAFBF7 ほんのり緑がかったオフホワイト */
-    --foreground: 90 25% 8%;           /* #1A2010 ほぼ黒、わずかに緑寄り */
+    --background: 80 33% 98%;
+    --foreground: 90 25% 8%;
 
     /* カード */
-    --card: 0 0% 100%;                 /* #FFFFFF 純白 */
+    --card: 0 0% 100%;
     --card-foreground: 90 25% 8%;
 
     /* ポップオーバー */
     --popover: 0 0% 100%;
     --popover-foreground: 90 25% 8%;
 
-    /* プライマリ（ライムグリーン） */
-    --primary: 79 64% 56%;             /* #A8D547 メインカラー */
-    --primary-foreground: 0 0% 100%;   /* 白文字 */
+    /* プライマリ */
+    --primary: 79 64% 56%;
+    --primary-foreground: 0 0% 100%;
 
-    /* セカンダリ（淡いグリーン） */
-    --secondary: 80 60% 95%;           /* #F1F8E1 */
+    /* セカンダリ */
+    --secondary: 80 60% 95%;
     --secondary-foreground: 90 25% 15%;
 
-    /* ミュート（控えめなグレーグリーン） */
+    /* ミュート */
     --muted: 80 20% 95%;
-    --muted-foreground: 90 10% 40%;    /* #6B7560 */
+    --muted-foreground: 90 10% 40%;
 
     /* アクセント */
     --accent: 79 64% 92%;
@@ -41,7 +41,7 @@
     /* ボーダー・入力 */
     --border: 80 15% 88%;
     --input: 80 15% 88%;
-    --ring: 79 64% 56%;                /* フォーカスリングはブランドカラー */
+    --ring: 79 64% 56%;
 
     /* 角丸 */
     --radius: 0.75rem;
@@ -60,38 +60,72 @@
   body {
     @apply bg-background text-foreground;
     text-rendering: optimizeLegibility;
+    letter-spacing: 0.02em;
+    line-height: 1.9;
   }
 
-  /* 見出しは明朝で品よく */
   h1, h2, h3 {
-    @apply font-serif tracking-tight;
-  }
-
-  /* セレクション色をブランドカラーに */
-  ::selection {
-    background-color: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
+    @apply font-serif;
+    font-weight: 400;
+    letter-spacing: 0.04em;
   }
 }
 
 @layer utilities {
-  /* セクションの余白統一 */
   .section-padding {
     @apply py-20 md:py-28;
   }
 
-  /* 詩的な見出しスタイル（LP用） */
   .heading-poetic {
     @apply font-serif text-3xl md:text-5xl leading-relaxed tracking-wider;
   }
 
-  /* 縦書きっぽい間延びした上品な日本語 */
   .text-airy {
     @apply leading-loose tracking-wide;
   }
 
-  /* グラデーション背景（ヒーロー用フォールバック） */
   .bg-brand-gradient {
     background: linear-gradient(135deg, #F5FAEB 0%, #FFFFFF 50%, #E8F3D1 100%);
+  }
+
+  .hero-en {
+    font-family: var(--font-cormorant), serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(2.4rem, 8vw, 5.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+  }
+
+  .hero-ja {
+    font-family: var(--font-noto-serif-jp), serif;
+    font-weight: 300;
+    font-size: clamp(0.82rem, 2.6vw, 1.05rem);
+    line-height: 2.8;
+    letter-spacing: 0.25em;
+  }
+
+  .caption-en {
+    font-family: var(--font-cormorant), serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 0.75rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+  }
+
+  .heading-editorial {
+    font-family: var(--font-noto-serif-jp), serif;
+    font-weight: 400;
+    font-size: clamp(1.75rem, 4.5vw, 2.75rem);
+    letter-spacing: 0.08em;
+    line-height: 1.5;
+  }
+
+  .rule-thin {
+    display: block;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.4;
   }
 }

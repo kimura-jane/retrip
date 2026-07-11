@@ -37,7 +37,7 @@ const HERO_POOL: {
     ja: "路地の奥に、ごちそう。",
   },
   {
-    src: "https://images.unsplash.com/photo-1545569310-3e0141c68f96?w=1920&q=80&auto=format&fit=crop",
+    src: "https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=1920&q=80&auto=format&fit=crop",
     alt: "バスの窓辺と旅の景色",
     en: "Somewhere on the way.",
     ja: "誰かと向かう、まだ知らない場所へ。",

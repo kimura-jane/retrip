@@ -21,44 +21,37 @@ type SearchParams = Promise<{ tag?: string | string[] }>;
 const HERO_POOL: {
   src: string;
   alt: string;
-  en: string;
-  ja: string;
+
 }[] = [
   {
     src: "https://images.unsplash.com/photo-1490806843957-31f4c9a91c65?w=1920&q=80&auto=format&fit=crop",
     alt: "朝霧の湖と山",
-    en: "Slow mornings, wild nature.",
-    ja: "静けさに、耳をすます。",
+
   },
   {
     src: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1920&q=80&auto=format&fit=crop",
     alt: "京都の路地と提灯",
-    en: "Taste the small streets.",
-    ja: "路地の奥に、ごちそう。",
+
   },
   {
     src: "https://images.unsplash.com/photo-1500835556837-99ac94a94552?w=1920&q=80&auto=format&fit=crop",
     alt: "バスの窓辺と旅の景色",
-    en: "Somewhere on the way.",
-    ja: "誰かと向かう、まだ知らない場所へ。",
+
   },
   {
     src: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1920&q=80&auto=format&fit=crop",
     alt: "富士山と湖のリフレクション",
-    en: "Frame the day.",
-    ja: "この日を、切り取って。",
+
   },
   {
     src: "https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=1920&q=80&auto=format&fit=crop",
     alt: "温泉宿の縁側と光",
-    en: "Steam, silence, stillness.",
-    ja: "ゆっくり、ほどける時間。",
+
   },
   {
     src: "https://images.unsplash.com/photo-1528164344705-47542687000d?w=1920&q=80&auto=format&fit=crop",
     alt: "秋の山道",
-    en: "Into the deep autumn.",
-    ja: "森の奥へ、深く。",
+
   },
 ];
 
@@ -110,7 +103,7 @@ export default async function HomePage({
   return (
     <>
       {/* =========================================
-          Hero — フルビューポート + 大型英字 + 日本語
+          Hero — フルビューポート + 日本語主役
           ========================================= */}
       <section className="relative h-[100svh] min-h-[640px] w-full overflow-hidden bg-ink-900 text-paper-100">
         <Image
@@ -134,16 +127,11 @@ export default async function HomePage({
           className="absolute inset-0 z-10 flex flex-col items-center justify-center px-6 text-center"
           style={{ animation: "retripFadeIn 1.8s ease-out both" }}
         >
-          <p className="caption-en mb-8 text-paper-100/80">{hero.en}</p>
-          <span className="rule-thin mb-9 w-10 text-paper-100" />
-
-          <h1 className="hero-en text-paper-100">
-            <span className="block">Somewhere new.</span>
-            <span className="block">Someone new.</span>
-            <span className="block">Someone you.</span>
+          <h1 className="font-serif text-[clamp(2rem,6vw,4.5rem)] font-light leading-[1.8] tracking-[0.18em] text-paper-100">
+            <span className="block">知らない場所で、</span>
+            <span className="block">知らない誰かと、</span>
+            <span className="block">知らない自分に。</span>
           </h1>
-
-          <p className="hero-ja mt-10 text-paper-100/90">{hero.ja}</p>
         </div>
 
         <div className="absolute bottom-0 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center">
@@ -176,10 +164,7 @@ export default async function HomePage({
           ========================================= */}
       <section className="border-b border-line bg-paper-100">
         <div className="mx-auto max-w-3xl px-6 py-24 text-center md:py-36 lg:px-10">
-          <p className="caption-en text-coral-700">
-            A small group. A real story. Yours.
-          </p>
-          <span className="rule-thin mx-auto mt-8 w-10 text-coral-700" />
+          <span className="rule-thin mx-auto w-10 text-coral-700" />
           <h2 className="heading-editorial mt-10 text-ink-900">
             少人数だから、
             <br />
@@ -194,12 +179,11 @@ export default async function HomePage({
       </section>
 
       {/* =========================================
-          Section Head — Upcoming Journeys
+          Section Head — 現在の募集ツアー
           ========================================= */}
       <section className="border-b border-line bg-paper-50">
         <div className="mx-auto max-w-7xl px-6 py-16 text-center md:py-20 lg:px-10">
-          <p className="caption-en text-coral-700">Upcoming Journeys</p>
-          <span className="rule-thin mx-auto mt-7 w-10 text-coral-700" />
+          <span className="rule-thin mx-auto w-10 text-coral-700" />
           <h1 className="heading-editorial mt-8 text-ink-900">
             現在の募集ツアー
           </h1>
@@ -212,8 +196,8 @@ export default async function HomePage({
       {tagList.length > 0 && (
         <section className="border-b border-line bg-paper-50">
           <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
-            <p className="caption-en text-center text-coral-700">
-              Filter by Theme
+            <p className="text-center font-serif text-sm tracking-[0.18em] text-coral-700">
+              テーマで絞る
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
               <TagChip href="/" label="すべて" active={selectedTag === null} />
@@ -238,8 +222,7 @@ export default async function HomePage({
         <div className="mx-auto max-w-7xl px-6 lg:px-10">
           {selectedTag && (
             <div className="mb-12 text-center">
-              <p className="caption-en text-ink-500">Tagged</p>
-              <h2 className="mt-2 font-serif text-2xl text-ink-900">
+              <h2 className="font-serif text-2xl text-ink-900">
                 #{selectedTag}
               </h2>
               <p className="mt-3 text-xs font-light text-ink-500">
@@ -249,7 +232,7 @@ export default async function HomePage({
                 href="/"
                 className="mt-4 inline-block text-[11px] uppercase tracking-[0.15em] text-coral-700 hover:underline"
               >
-                ← all
+                ← すべてのツアーを見る
               </Link>
             </div>
           )}
@@ -299,7 +282,7 @@ export default async function HomePage({
                     <div className="mt-6">
                       <p className="caption-en text-ink-500">
                         {t.destination ?? ""}
-                        {dateLabel && ` — ${dateLabel}`}
+                        {dateLabel && ` ／ ${dateLabel}`}
                       </p>
                       <h3 className="mt-3 font-serif text-xl leading-snug text-ink-900">
                         {t.title}
@@ -321,7 +304,7 @@ export default async function HomePage({
                           ¥{(t.price ?? 0).toLocaleString()}
                         </span>
                         <span className="caption-en text-[10px] text-ink-500">
-                          / per seat
+                          ／ ひとり
                         </span>
                       </div>
                     </div>
@@ -334,7 +317,7 @@ export default async function HomePage({
       </section>
 
       {/* =========================================
-          Editorial Banner
+          Editorial Banner — 日本語主役
           ========================================= */}
       <section className="relative min-h-[70svh] w-full overflow-hidden bg-ink-900 text-paper-100">
         <Image
@@ -346,13 +329,8 @@ export default async function HomePage({
         />
         <div className="absolute inset-0 bg-ink-900/55" />
         <div className="relative flex min-h-[70svh] flex-col items-center justify-center px-6 py-24 text-center lg:px-10">
-          <p className="hero-en text-paper-100">
-            You&rsquo;re not watching
-            <br />
-            anymore.
-          </p>
-          <span className="rule-thin mx-auto mt-10 w-10 text-paper-100" />
-          <p className="hero-ja mt-10 text-paper-100/90">
+          <span className="rule-thin mx-auto w-10 text-paper-100" />
+          <p className="mt-10 font-serif text-[clamp(1.8rem,5vw,3.75rem)] font-light leading-[1.8] tracking-[0.14em] text-paper-100">
             もう、観ている側じゃない。
             <br />
             今度は、あなたが主役。

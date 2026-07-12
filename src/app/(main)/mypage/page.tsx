@@ -450,6 +450,22 @@ export default async function MyPage() {
             </span>
           </Link>
 
+          {/* 運営への問い合わせ */}
+          <Link
+            href="/chat/support"
+            className="flex items-center justify-between py-3 px-1 hover:bg-paper-50 transition-colors group"
+          >
+            <div>
+              <p className="text-[14px] text-ink-900">運営に問い合わせる</p>
+              <p className="text-[11px] text-ink-500 font-light mt-0.5">
+                ご質問・ご相談はこちらから
+              </p>
+            </div>
+            <span className="text-[11px] text-ink-500 group-hover:text-coral-700 transition-colors">
+              →
+            </span>
+          </Link>
+
           {/* Re:Trip について（LP へ外部リンク） */}
           <a
             href="https://kimura-jane.github.io/retrip-lp/"

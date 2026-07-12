@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { getUnreadCountsAction } from "@/features/chat/actions";
 
@@ -15,6 +16,11 @@ type TourRoomRow = {
   id: string;
   name: string;
   tour_id: string | null;
+};
+
+type SupportRoomRow = {
+  id: string;
+  name: string;
 };
 
 function UnreadBadge({ count }: { count: number }) {
@@ -34,6 +40,16 @@ export default async function ChatListPage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+
+  // 一覧表示では部屋を作成せず、自分の既存supportルームをSELECTするだけにする。
+  const supportClient = supabase as unknown as SupabaseClient;
+  const { data: supportRoomData } = await supportClient
+    .from("chat_rooms")
+    .select("id,name")
+    .eq("room_type", "support")
+    .eq("support_owner_id", user.id)
+    .maybeSingle();
+  const supportRoom = supportRoomData as SupportRoomRow | null;
 
   // 自分の本人確認状態を確認
   const { data: profileData } = await supabase
@@ -86,6 +102,33 @@ export default async function ChatListPage() {
           他の旅人たちと、自由におしゃべりしましょう。
         </p>
       </header>
+
+      {/* 運営とのチャット */}
+      {supportRoom && (
+        <section className="mb-10">
+          <p className="font-display italic uppercase tracking-widest2 text-[11px] text-coral-700 mb-5">
+            Support
+          </p>
+          <ul className="divide-y divide-[#E5E0D8] border-y border-[#E5E0D8]">
+            <li>
+              <Link
+                href={`/chat/${supportRoom.id}`}
+                className="flex items-center justify-between py-4 group"
+              >
+                <span className="font-serif text-lg text-ink-900 group-hover:text-coral-700 transition-colors">
+                  運営とのチャット
+                </span>
+                <span className="flex items-center gap-3">
+                  <UnreadBadge count={getUnread(supportRoom.id)} />
+                  <span className="font-display italic text-xs text-ink-500 group-hover:text-coral-700 transition-colors">
+                    enter →
+                  </span>
+                </span>
+              </Link>
+            </li>
+          </ul>
+        </section>
+      )}
 
       {/* 参加中の旅チャット（予約のあるツアーのみ表示される） */}
       {tourRooms.length > 0 && (

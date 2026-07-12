@@ -11,21 +11,15 @@ export async function toggleFavoriteAction(formData: FormData): Promise<void> {
   const nextPath = nextRaw.startsWith("/") ? nextRaw : "/";
 
   if (!tourId) {
-    console.error("[favorites] missing tourId in formData");
     redirect(nextPath);
   }
 
   const supabase = await createClient();
   const {
     data: { user },
-    error: userErr,
   } = await supabase.auth.getUser();
 
-  if (userErr) {
-    console.error("[favorites] getUser error", userErr);
-  }
   if (!user) {
-    console.warn("[favorites] no user, redirecting to /login");
     redirect("/login");
   }
 
@@ -41,14 +35,7 @@ export async function toggleFavoriteAction(formData: FormData): Promise<void> {
     .maybeSingle();
 
   if (selectErr) {
-    console.error("[favorites] select error", {
-      message: selectErr.message,
-      details: selectErr.details,
-      hint: selectErr.hint,
-      code: selectErr.code,
-      userId: user!.id,
-      tourId,
-    });
+    console.error("[favorites] select error", selectErr.message);
     redirect(nextPath);
   }
 
@@ -58,34 +45,12 @@ export async function toggleFavoriteAction(formData: FormData): Promise<void> {
       .delete()
       .eq("user_id", user!.id)
       .eq("tour_id", tourId);
-    if (delErr) {
-      console.error("[favorites] delete error", {
-        message: delErr.message,
-        details: delErr.details,
-        hint: delErr.hint,
-        code: delErr.code,
-        userId: user!.id,
-        tourId,
-      });
-    } else {
-      console.log("[favorites] deleted", { userId: user!.id, tourId });
-    }
+    if (delErr) console.error("[favorites] delete error", delErr.message);
   } else {
     const { error: insErr } = await favoritesClient
       .from("favorites")
       .insert({ user_id: user!.id, tour_id: tourId });
-    if (insErr) {
-      console.error("[favorites] insert error", {
-        message: insErr.message,
-        details: insErr.details,
-        hint: insErr.hint,
-        code: insErr.code,
-        userId: user!.id,
-        tourId,
-      });
-    } else {
-      console.log("[favorites] inserted", { userId: user!.id, tourId });
-    }
+    if (insErr) console.error("[favorites] insert error", insErr.message);
   }
 
   revalidatePath("/");

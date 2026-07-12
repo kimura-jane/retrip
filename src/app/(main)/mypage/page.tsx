@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signOutAction } from "@/features/auth/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FavoriteButton } from "@/app/(main)/_components/favorite-button";
+import { toggleWaitlistAction } from "@/features/waitlists/actions";
 import { GENDER_LABELS } from "@/features/user/schema";
 import type { Gender, BookingStatus } from "@/types/database";
 
@@ -45,6 +46,19 @@ type FavoriteWithTour = {
     price: number;
     cover_image_url: string | null;
     theme_tags: string[] | null;
+  } | null;
+};
+
+type WaitlistWithTour = {
+  id: string;
+  tour_id: string;
+  status: "waiting" | "notified";
+  tours: {
+    id: string;
+    title: string;
+    destination: string;
+    departure_date: string;
+    cover_image_url: string | null;
   } | null;
 };
 
@@ -89,6 +103,19 @@ export default async function MyPage() {
 
   const favorites =
     (favoritesData as unknown as FavoriteWithTour[] | null) ?? [];
+
+  // キャンセル待ち中のツアー一覧を取得
+  const { data: waitlistsData } = await favoritesClient
+    .from("waitlists")
+    .select(
+      "id,tour_id,status,tours(id,title,destination,departure_date,cover_image_url)"
+    )
+    .eq("user_id", user.id)
+    .in("status", ["waiting", "notified"])
+    .order("created_at", { ascending: true });
+
+  const waitlists =
+    (waitlistsData as unknown as WaitlistWithTour[] | null) ?? [];
 
   // 出発日で「今後」「過去」に振り分け
   const now = Date.now();
@@ -229,6 +256,53 @@ export default async function MyPage() {
     );
   };
 
+  const renderWaitlistCard = (entry: WaitlistWithTour) => {
+    if (!entry.tours) return null;
+    const tour = entry.tours;
+    return (
+      <div
+        key={entry.id}
+        className="relative border border-line bg-paper-100 p-3"
+      >
+        <Link href={`/tours/${tour.id}`} className="flex items-center gap-4 pr-16">
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden bg-paper-200">
+            {tour.cover_image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={tour.cover_image_url}
+                alt={tour.title}
+                className="h-full w-full object-cover"
+              />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] tracking-wide text-ink-500 font-light">
+              {tour.destination} · {fmtDate(tour.departure_date)}
+            </p>
+            <p className="mt-0.5 font-serif text-[15px] text-ink-900 truncate">
+              {tour.title}
+            </p>
+            {entry.status === "notified" && (
+              <span className="mt-1 inline-block bg-coral-500 px-2 py-0.5 text-[10px] text-paper-100">
+                空きが出ました
+              </span>
+            )}
+          </div>
+        </Link>
+        <form action={toggleWaitlistAction} className="absolute bottom-3 right-3">
+          <input type="hidden" name="tourId" value={tour.id} />
+          <input type="hidden" name="next" value="/mypage" />
+          <button
+            type="submit"
+            className="border border-line bg-paper-50 px-2.5 py-1 text-[11px] text-ink-500 hover:border-coral-500 hover:text-coral-700 transition-colors"
+          >
+            解除
+          </button>
+        </form>
+      </div>
+    );
+  };
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
       {/* ページヘッダー */}
@@ -338,6 +412,20 @@ export default async function MyPage() {
           </p>
         ) : (
           <div className="space-y-2">{favorites.map(renderFavoriteCard)}</div>
+        )}
+      </section>
+
+      {/* キャンセル待ち中 */}
+      <section className="mb-8">
+        <h2 className="font-serif text-xl text-ink-900 italic mb-4">
+          キャンセル待ち中
+        </h2>
+        {waitlists.length === 0 ? (
+          <p className="text-[13px] font-light text-ink-500 leading-loose">
+            キャンセル待ち中のツアーはありません。
+          </p>
+        ) : (
+          <div className="space-y-2">{waitlists.map(renderWaitlistCard)}</div>
         )}
       </section>
 

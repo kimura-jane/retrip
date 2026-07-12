@@ -57,7 +57,8 @@ export async function updateSession(request: NextRequest) {
     publicPaths.includes(pathname) ||
     publicPrefixes.some((prefix) => pathname.startsWith(prefix)) ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/stripe/webhook");
+    pathname.startsWith("/api/stripe/webhook") ||
+    pathname.startsWith("/api/cron/");
 
   if (!user && !isPublic) {
     const redirectUrl = request.nextUrl.clone();

@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database, MeetingPoint } from "@/types/database";
 import { getFavoriteTourIds } from "@/features/favorites/queries";
 import { FavoriteButton } from "@/app/(main)/_components/favorite-button";
+import { toggleWaitlistAction } from "@/features/waitlists/actions";
+import { getWaitlistTourIds } from "@/features/waitlists/queries";
 import BookingPanel from "./booking-panel";
 import RouteMap from "./_components/route-map";
 
@@ -36,6 +38,7 @@ export default async function TourDetailPage({ params }: { params: Params }) {
     data: { user },
   } = await supabase.auth.getUser();
   const favoriteIds = await getFavoriteTourIds();
+  const waitlistTourIds = await getWaitlistTourIds();
 
   // このツアーに対する自分の予約状況を確認する（cancelled は予約扱いしない）
   // maybeSingle にジェネリックを渡して型を確定させる（このリポジトリの流儀）
@@ -58,6 +61,15 @@ export default async function TourDetailPage({ params }: { params: Params }) {
 
     existingBooking = bookingData ?? null;
   }
+
+  // 予約処理と同じ基準で、confirmed の予約数と総定員を比較する。
+  const { count: confirmedCount } = await supabase
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("tour_id", tourId)
+    .eq("status", "confirmed");
+  const isFull = (confirmedCount ?? 0) >= tour.capacity_total;
+  const isWaitlisted = waitlistTourIds.has(tour.id);
 
   // 予約済みの集合場所名を求める（表示用）
   const bookedMeetingPoint = existingBooking?.meeting_point_id
@@ -305,10 +317,14 @@ export default async function TourDetailPage({ params }: { params: Params }) {
                   href="/login"
                   className="block w-full text-center px-6 py-4 bg-ink-900 text-paper-100 text-[12px] tracking-widest2 uppercase hover:bg-coral-700 transition-colors"
                 >
-                  ログインして申し込む
+                  {isFull
+                    ? "ログインしてキャンセル待ちに登録"
+                    : "ログインして申し込む"}
                 </Link>
                 <p className="mt-4 text-[11px] font-light text-ink-500 leading-loose2 text-center">
-                  ご予約にはログインと本人確認が必要です。
+                  {isFull
+                    ? "満席（ログインするとキャンセル待ちに登録できます）"
+                    : "ご予約にはログインと本人確認が必要です。"}
                 </p>
               </div>
             ) : existingBooking ? (
@@ -335,6 +351,37 @@ export default async function TourDetailPage({ params }: { params: Params }) {
                 </Link>
                 <p className="mt-4 text-[11px] font-light text-ink-500 leading-loose2 text-center">
                   ツアーの旅チャットや詳細はマイページからご確認いただけます。
+                </p>
+              </div>
+            ) : isFull ? (
+              <div className="mt-10">
+                {isWaitlisted && (
+                  <p className="mb-4 text-center font-serif text-[15px] text-coral-700">
+                    キャンセル待ち登録中
+                  </p>
+                )}
+                <form action={toggleWaitlistAction}>
+                  <input type="hidden" name="tourId" value={tour.id} />
+                  <input
+                    type="hidden"
+                    name="next"
+                    value={`/tours/${tour.id}`}
+                  />
+                  <button
+                    type="submit"
+                    className={`w-full px-6 py-4 text-[12px] tracking-widest2 uppercase transition-colors ${
+                      isWaitlisted
+                        ? "border border-coral-500 bg-paper-50 text-coral-700 hover:bg-coral-50"
+                        : "bg-coral-500 text-paper-100 hover:bg-coral-700"
+                    }`}
+                  >
+                    {isWaitlisted
+                      ? "キャンセル待ちを解除"
+                      : "キャンセル待ちに登録"}
+                  </button>
+                </form>
+                <p className="mt-4 text-[11px] font-light text-ink-500 leading-loose2 text-center">
+                  空きが出た場合は、翌朝9時にメールでお知らせします。予約は先着順です。
                 </p>
               </div>
             ) : (

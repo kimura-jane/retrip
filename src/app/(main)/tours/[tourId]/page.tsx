@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, MeetingPoint } from "@/types/database";
+import { getFavoriteTourIds } from "@/features/favorites/queries";
+import { FavoriteButton } from "@/app/(main)/_components/favorite-button";
 import BookingPanel from "./booking-panel";
 import RouteMap from "./_components/route-map";
 
@@ -33,6 +35,7 @@ export default async function TourDetailPage({ params }: { params: Params }) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const favoriteIds = await getFavoriteTourIds();
 
   // このツアーに対する自分の予約状況を確認する（cancelled は予約扱いしない）
   // maybeSingle にジェネリックを渡して型を確定させる（このリポジトリの流儀）
@@ -122,9 +125,17 @@ export default async function TourDetailPage({ params }: { params: Params }) {
           <p className="font-display italic text-[12px] tracking-widest2 uppercase text-coral-700">
             {tour.tour_type === "overnight" ? "Overnight Journey" : "Day Trip"}
           </p>
-          <h1 className="mt-4 font-serif text-3xl md:text-5xl tracking-[0.04em] leading-[1.5] text-ink-900">
-            {tour.title}
-          </h1>
+          <div className="mt-4 flex items-start justify-between gap-4">
+            <h1 className="font-serif text-3xl md:text-5xl tracking-[0.04em] leading-[1.5] text-ink-900">
+              {tour.title}
+            </h1>
+            <FavoriteButton
+              tourId={tour.id}
+              isFavorite={favoriteIds.has(tour.id)}
+              nextPath={`/tours/${tour.id}`}
+              variant="detail"
+            />
+          </div>
           <div className="mt-6 text-[13px] tracking-[0.08em] text-ink-500 font-light leading-loose2">
             {tour.destination}
             <span className="mx-3">·</span>

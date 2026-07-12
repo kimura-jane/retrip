@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getFavoriteTourIds } from "@/features/favorites/queries";
+import { FavoriteButton } from "@/app/(main)/_components/favorite-button";
 
 type Tour = {
   id: string;
@@ -63,6 +65,7 @@ export default async function HomePage({
   const sp = await searchParams;
   const rawTag = Array.isArray(sp.tag) ? sp.tag[0] : sp.tag;
   const selectedTag = rawTag?.trim() || null;
+  const favoriteIds = await getFavoriteTourIds();
 
   const supabase = await createClient();
   const { data } = await supabase
@@ -92,7 +95,9 @@ export default async function HomePage({
       return a.tag.localeCompare(b.tag, "ja");
     });
 
-  const tours: Tour[] = selectedTag
+  const tours: Tour[] = selectedTag === "__favorites__"
+    ? allTours.filter((t) => favoriteIds.has(t.id))
+    : selectedTag
     ? allTours.filter((t) => (t.theme_tags ?? []).includes(selectedTag))
     : allTours;
 
@@ -189,6 +194,12 @@ export default async function HomePage({
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
               <TagChip href="/" label="すべて" active={selectedTag === null} />
+              <TagChip
+                href="/?tag=__favorites__"
+                label="♡ お気に入り"
+                count={favoriteIds.size || undefined}
+                active={selectedTag === "__favorites__"}
+              />
               {tagList.map(({ tag, count }) => (
                 <TagChip
                   key={tag}
@@ -211,7 +222,9 @@ export default async function HomePage({
           {selectedTag && (
             <div className="mb-8 text-center">
               <h2 className="font-serif text-2xl text-ink-900">
-                #{selectedTag}
+                {selectedTag === "__favorites__"
+                  ? "気になるリスト"
+                  : `#${selectedTag}`}
               </h2>
               <p className="mt-3 text-xs font-light text-ink-500">
                 {tours.length} 件のツアー
@@ -228,7 +241,9 @@ export default async function HomePage({
           {tours.length === 0 ? (
             <p className="text-center text-[13px] font-light leading-loose text-ink-500">
               {selectedTag
-                ? `「${selectedTag}」に該当するツアーは現在ありません。`
+                ? selectedTag === "__favorites__"
+                  ? "気になるツアーはまだありません。"
+                  : `「${selectedTag}」に該当するツアーは現在ありません。`
                 : "現在、募集中のツアーはありません。"}
             </p>
           ) : (
@@ -247,53 +262,67 @@ export default async function HomePage({
                   : "";
                 const num = String(idx + 1).padStart(3, "0");
                 return (
-                  <Link key={t.id} href={`/tours/${t.id}`} className="group block">
-                    <div className="relative aspect-[4/5] overflow-hidden bg-paper-200">
-                      {t.cover_image_url && (
-                        <Image
-                          src={t.cover_image_url}
-                          alt={t.title}
-                          fill
-                          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                          className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
-                        />
-                      )}
-                      {isSample && (
-                        <span className="caption-en absolute left-4 top-4 bg-coral-500 px-3 py-1.5 text-paper-100">
-                          sample
-                        </span>
-                      )}
-                      <span className="caption-en absolute bottom-4 right-4 bg-paper-100/90 px-3 py-1.5 text-ink-900 backdrop-blur-sm">
-                        № {num}
-                      </span>
-                    </div>
-                    <div className="mt-6">
-                      <p className="caption-en text-ink-500">
-                        {t.destination ?? ""}
-                        {dateLabel && ` ／ ${dateLabel}`}
-                      </p>
-                      <h3 className="mt-3 font-serif text-xl leading-snug text-ink-900">
-                        {t.title}
-                      </h3>
-                      {tags.length > 0 && (
-                        <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-light tracking-[0.15em] text-ink-500">
-                          {tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className={tag === selectedTag ? "text-coral-700" : ""}
-                            >
-                              #{tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      <div className="mt-5 flex items-baseline gap-2">
-                        <span className="font-display text-3xl font-light text-ink-900">
-                          ¥{(t.price ?? 0).toLocaleString()}
+                  <div key={t.id} className="group relative block">
+                    <FavoriteButton
+                      tourId={t.id}
+                      isFavorite={favoriteIds.has(t.id)}
+                      nextPath={
+                        selectedTag
+                          ? `/?tag=${encodeURIComponent(selectedTag)}`
+                          : "/"
+                      }
+                      variant="card"
+                    />
+                    <Link href={`/tours/${t.id}`} className="block">
+                      <div className="relative aspect-[4/5] overflow-hidden bg-paper-200">
+                        {t.cover_image_url && (
+                          <Image
+                            src={t.cover_image_url}
+                            alt={t.title}
+                            fill
+                            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                            className="object-cover transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+                          />
+                        )}
+                        {isSample && (
+                          <span className="caption-en absolute left-4 top-4 bg-coral-500 px-3 py-1.5 text-paper-100">
+                            sample
+                          </span>
+                        )}
+                        <span className="caption-en absolute bottom-4 right-4 bg-paper-100/90 px-3 py-1.5 text-ink-900 backdrop-blur-sm">
+                          № {num}
                         </span>
                       </div>
-                    </div>
-                  </Link>
+                      <div className="mt-6">
+                        <p className="caption-en text-ink-500">
+                          {t.destination ?? ""}
+                          {dateLabel && ` ／ ${dateLabel}`}
+                        </p>
+                        <h3 className="mt-3 font-serif text-xl leading-snug text-ink-900">
+                          {t.title}
+                        </h3>
+                        {tags.length > 0 && (
+                          <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-light tracking-[0.15em] text-ink-500">
+                            {tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className={
+                                  tag === selectedTag ? "text-coral-700" : ""
+                                }
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="mt-5 flex items-baseline gap-2">
+                          <span className="font-display text-3xl font-light text-ink-900">
+                            ¥{(t.price ?? 0).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
                 );
               })}
             </div>

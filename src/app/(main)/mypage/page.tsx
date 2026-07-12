@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { signOutAction } from "@/features/auth/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { FavoriteButton } from "@/app/(main)/_components/favorite-button";
 import { GENDER_LABELS } from "@/features/user/schema";
 import type { Gender, BookingStatus } from "@/types/database";
 
@@ -30,6 +32,19 @@ type BookingWithTour = {
     destination: string;
     departure_date: string;
     cover_image_url: string | null;
+  } | null;
+};
+
+type FavoriteWithTour = {
+  tour_id: string;
+  tours: {
+    id: string;
+    title: string;
+    destination: string;
+    departure_date: string;
+    price: number;
+    cover_image_url: string | null;
+    theme_tags: string[] | null;
   } | null;
 };
 
@@ -61,6 +76,19 @@ export default async function MyPage() {
     .neq("status", "cancelled");
 
   const bookings = (bookingsData as unknown as BookingWithTour[] | null) ?? [];
+
+  // 気になるツアー一覧を取得（新規テーブルの型生成までは untyped client を使用）
+  const favoritesClient = supabase as unknown as SupabaseClient;
+  const { data: favoritesData } = await favoritesClient
+    .from("favorites")
+    .select(
+      "tour_id,tours(id,title,destination,departure_date,price,cover_image_url,theme_tags)"
+    )
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  const favorites =
+    (favoritesData as unknown as FavoriteWithTour[] | null) ?? [];
 
   // 出発日で「今後」「過去」に振り分け
   const now = Date.now();
@@ -160,6 +188,47 @@ export default async function MyPage() {
     );
   };
 
+  const renderFavoriteCard = (favorite: FavoriteWithTour) => {
+    if (!favorite.tours) return null;
+    const tour = favorite.tours;
+    return (
+      <div key={favorite.tour_id} className="group relative">
+        <FavoriteButton
+          tourId={tour.id}
+          isFavorite
+          nextPath="/mypage"
+          variant="card"
+        />
+        <Link
+          href={`/tours/${tour.id}`}
+          className="flex items-center gap-4 border border-line bg-paper-100 p-3 hover:border-ink-500 transition-colors"
+        >
+          <div className="relative h-14 w-14 shrink-0 overflow-hidden bg-paper-200">
+            {tour.cover_image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={tour.cover_image_url}
+                alt={tour.title}
+                className="h-full w-full object-cover"
+              />
+            )}
+          </div>
+          <div className="min-w-0 flex-1 pr-10">
+            <p className="text-[11px] tracking-wide text-ink-500 font-light">
+              {tour.destination} · {fmtDate(tour.departure_date)}
+            </p>
+            <p className="mt-0.5 font-serif text-[15px] text-ink-900 truncate">
+              {tour.title}
+            </p>
+            <span className="mt-0.5 inline-block font-display text-[13px] text-coral-700">
+              ¥{tour.price.toLocaleString()}
+            </span>
+          </div>
+        </Link>
+      </div>
+    );
+  };
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
       {/* ページヘッダー */}
@@ -255,6 +324,20 @@ export default async function MyPage() {
             <h3 className="font-serif text-base text-ink-900 mb-3">これまでの旅</h3>
             <div className="space-y-2">{past.map(renderBookingCard)}</div>
           </div>
+        )}
+      </section>
+
+      {/* 気になるリスト */}
+      <section className="mb-8">
+        <h2 className="font-serif text-xl text-ink-900 italic mb-4">
+          気になるリスト
+        </h2>
+        {favorites.length === 0 ? (
+          <p className="text-[13px] font-light text-ink-500 leading-loose">
+            気になるツアーはまだありません。
+          </p>
+        ) : (
+          <div className="space-y-2">{favorites.map(renderFavoriteCard)}</div>
         )}
       </section>
 
